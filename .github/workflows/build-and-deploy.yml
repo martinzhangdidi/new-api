@@ -1,0 +1,56 @@
+name: Build and Deploy to Production
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '**.go'
+      - 'web/**'
+      - 'go.mod'
+      - 'go.sum'
+      - 'Dockerfile'
+      - 'VERSION'
+      - 'infrastructure/nomad/new-api.nomad.hcl'
+      - '.github/workflows/build-and-deploy.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  build-and-deploy:
+    # 使用 self-hosted runner，在杭州服务器上执行
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Build Docker image locally
+        run: |
+          docker build -t new-api:${{ github.sha }} .
+          docker tag new-api:${{ github.sha }} new-api:latest
+
+      - name: Deploy with Nomad
+        run: |
+          echo "Deploying new-api with image: new-api:${{ github.sha }}"
+          nomad job run -var="image_tag=${{ github.sha }}" infrastructure/nomad/new-api.nomad.hcl
+
+      - name: Verify deployment
+        run: |
+          sleep 10
+          nomad job status new-api
+
+      - name: Cleanup old images
+        run: |
+          docker image prune -f --filter "until=168h"
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "Deployment failed! Check logs above."
+          echo "To rollback: nomad job revert new-api <version>"
