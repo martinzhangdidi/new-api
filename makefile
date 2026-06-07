@@ -8,7 +8,13 @@ DEV_POSTGRES_DB = new-api
 DEV_POSTGRES_USER = root
 DEV_SQLITE_PATH ?= one-api.db
 
-.PHONY: all build-frontend build-frontend-classic build-all-frontends start-backend dev dev-api dev-api-rebuild dev-web dev-web-classic reset-setup
+# 阿里云镜像仓库配置
+ALIYUN_REGISTRY = crpi-3akfk1c833x0o8uo.cn-hangzhou.personal.cr.aliyuncs.com
+ALIYUN_NAMESPACE = tenkb
+IMAGE_NAME = newapi
+IMAGE_TAG ?= latest
+
+.PHONY: all build-frontend build-frontend-classic build-all-frontends start-backend dev dev-api dev-api-rebuild dev-web dev-web-classic reset-setup build-push test-local
 
 all: build-all-frontends start-backend
 
@@ -67,3 +73,49 @@ reset-setup:
 		echo "Start the dev stack with 'make dev-api', or set SQLITE_PATH/DEV_SQLITE_PATH to your local SQLite database."; \
 		exit 1; \
 	fi
+
+# 构建并推送到阿里云镜像仓库（本地 Mac 构建 x86_64 镜像）
+build-push:
+	@echo "🚀 构建并推送镜像到阿里云..."
+	@echo "📦 镜像: $(ALIYUN_REGISTRY)/$(ALIYUN_NAMESPACE)/$(IMAGE_NAME):$(IMAGE_TAG)"
+	@docker buildx build \
+		--platform linux/amd64 \
+		--tag $(ALIYUN_REGISTRY)/$(ALIYUN_NAMESPACE)/$(IMAGE_NAME):$(IMAGE_TAG) \
+		--push \
+		.
+	@echo "✅ 推送完成！"
+	@echo "📋 镜像地址: $(ALIYUN_REGISTRY)/$(ALIYUN_NAMESPACE)/$(IMAGE_NAME):$(IMAGE_TAG)"
+
+# 本地测试镜像（不推送，启动临时数据库验证）
+test-local:
+	@echo "🧪 本地测试 new-api 镜像..."
+	@echo "🔨 构建本地测试镜像..."
+	@docker build -t new-api:test .
+	@echo "🐘 启动临时 PostgreSQL + Redis..."
+	@docker run -d --name test-postgres \
+		-e POSTGRES_USER=root -e POSTGRES_PASSWORD=123456 -e POSTGRES_DB=new-api \
+		-p 5432:5432 postgres:15-alpine >/dev/null 2>&1 || true
+	@docker run -d --name test-redis \
+		-p 6379:6379 redis:7-alpine >/dev/null 2>&1 || true
+	@echo "⏳ 等待数据库就绪..."
+	@sleep 5
+	@echo "🚀 启动测试容器..."
+	@docker run -d --name new-api-test \
+		-p 3001:3000 \
+		-e SQL_DSN="postgresql://root:123456@host.docker.internal:5432/new-api?sslmode=disable" \
+		-e REDIS_CONN_STRING="redis://host.docker.internal:6379" \
+		-e TZ=Asia/Shanghai \
+		new-api:test >/dev/null 2>&1
+	@echo "🔍 等待服务启动..."
+	@sleep 8
+	@echo "🔍 测试健康检查..."
+	@if curl -s http://localhost:3001/api/status | grep -q '"success":true'; then \
+		echo "✅ 测试通过！镜像正常"; \
+	else \
+		echo "❌ 测试失败，查看日志:"; \
+		docker logs new-api-test | tail -20; \
+	fi
+	@echo "🧹 清理测试容器..."
+	@docker stop new-api-test test-postgres test-redis >/dev/null 2>&1 || true
+	@docker rm new-api-test test-postgres test-redis >/dev/null 2>&1 || true
+	@echo "✅ 本地测试完成"
