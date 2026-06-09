@@ -4,7 +4,7 @@
 
 set -e
 
-SERVER_IP="114.55.97.84"
+SERVER_ALIAS="hangzhou"
 IMAGE_TAG=${1:-latest}
 ALIYUN_REGISTRY="crpi-3akfk1c833x0o8uo.cn-hangzhou.personal.cr.aliyuncs.com"
 ALIYUN_NAMESPACE="tenkb"
@@ -15,12 +15,12 @@ echo "=========================="
 echo "📦 镜像: ${ALIYUN_REGISTRY}/${ALIYUN_NAMESPACE}/${IMAGE_NAME}:${IMAGE_TAG}"
 
 # 部署到 Nomad
-ssh root@${SERVER_IP} \
-  "cd /root/tenkb-infra && \
+ssh ${SERVER_ALIAS} \
+  "cd /root && \
    nomad job run -var='image=${ALIYUN_REGISTRY}/${ALIYUN_NAMESPACE}/${IMAGE_NAME}:${IMAGE_TAG}' \
-   nomad/new-api.nomad.hcl"
+   new-api.nomad.hcl"
 
 echo ""
 echo "✅ 部署完成！"
-echo "查看状态: ssh root@${SERVER_IP} 'nomad job status new-api'"
+echo "查看状态: ssh ${SERVER_ALIAS} 'nomad job status new-api'"
 echo "访问: https://newapi.sdkgpt.com"

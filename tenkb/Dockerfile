@@ -19,7 +19,7 @@ RUN DISABLE_ESLINT_PLUGIN='true' VITE_REACT_APP_VERSION=$(cat VERSION) bun run b
 
 FROM golang:1.26.1-alpine@sha256:2389ebfa5b7f43eeafbd6be0c3700cc46690ef842ad962f6c5bd6be49ed82039 AS builder2
 
-ENV GO111MODULE=on CGO_ENABLED=0
+ENV GO111MODULE=on CGO_ENABLED=0 GOPROXY=https://mirrors.aliyun.com/goproxy/,direct
 ARG TARGETOS
 ARG TARGETARCH
 ENV GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64}
@@ -33,7 +33,7 @@ RUN go mod download
 
 # 2. 复制前端构建产物
 COPY --from=builder /build/dist ./web/default/dist
-# 创建空的 classic/dist 目录（满足 Go embed 要求）
+# 创建空的 classic/dist 目录（满足 Go embed 要求，默认使用 default 主题）
 RUN mkdir -p web/classic/dist && touch web/classic/dist/index.html
 
 # 3. 再复制 Go 源码（常变，缓存命中率低）

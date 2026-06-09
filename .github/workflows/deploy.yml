@@ -1,0 +1,100 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches: [main, master]
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: '镜像标签 (默认: latest)'
+        required: false
+        default: 'latest'
+
+env:
+  ALIYUN_REGISTRY: crpi-3akfk1c833x0o8uo.cn-hangzhou.personal.cr.aliyuncs.com
+  ALIYUN_NAMESPACE: tenkb
+  IMAGE_NAME: newapi
+
+jobs:
+  build:
+    name: 构建并推送镜像
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Alibaba Cloud ACR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.ALIYUN_REGISTRY }}
+          username: ${{ secrets.ALIYUN_USERNAME }}
+          password: ${{ secrets.ALIYUN_PASSWORD }}
+
+      - name: Set image tag
+        id: vars
+        run: |
+          if [ "${{ github.event.inputs.image_tag }}" != "" ]; then
+            echo "IMAGE_TAG=${{ github.event.inputs.image_tag }}" >> $GITHUB_OUTPUT
+          elif [ "${{ github.ref_type }}" = "tag" ]; then
+            echo "IMAGE_TAG=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          else
+            echo "IMAGE_TAG=latest" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: tenkb/Dockerfile
+          push: true
+          tags: ${{ env.ALIYUN_REGISTRY }}/${{ env.ALIYUN_NAMESPACE }}/${{ env.IMAGE_NAME }}:${{ steps.vars.outputs.IMAGE_TAG }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64
+
+      - name: Output image
+        run: |
+          echo "镜像已推送: ${{ env.ALIYUN_REGISTRY }}/${{ env.ALIYUN_NAMESPACE }}/${{ env.IMAGE_NAME }}:${{ steps.vars.outputs.IMAGE_TAG }}"
+
+  deploy:
+    name: 部署到杭州 Nomad
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set image tag
+        id: vars
+        run: |
+          if [ "${{ github.event.inputs.image_tag }}" != "" ]; then
+            echo "IMAGE_TAG=${{ github.event.inputs.image_tag }}" >> $GITHUB_OUTPUT
+          elif [ "${{ github.ref_type }}" = "tag" ]; then
+            echo "IMAGE_TAG=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          else
+            echo "IMAGE_TAG=latest" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup Nomad CLI
+        uses: hashicorp/setup-nomad@v1
+        with:
+          version: '1.7.0'
+
+      - name: Deploy to Nomad
+        env:
+          NOMAD_ADDR: ${{ secrets.NOMAD_ADDR }}
+          NOMAD_SKIP_VERIFY: true
+        run: |
+          echo "🚀 部署 new-api 到 Nomad"
+          echo "📦 镜像: ${{ env.ALIYUN_REGISTRY }}/${{ env.ALIYUN_NAMESPACE }}/${{ env.IMAGE_NAME }}:${{ steps.vars.outputs.IMAGE_TAG }}"
+
+          nomad job run \
+            -var="image=${{ env.ALIYUN_REGISTRY }}/${{ env.ALIYUN_NAMESPACE }}/${{ env.IMAGE_NAME }}:${{ steps.vars.outputs.IMAGE_TAG }}" \
+            infrastructure/nomad/new-api.nomad.hcl
+
+          echo "✅ 部署完成！"
+          nomad job status new-api

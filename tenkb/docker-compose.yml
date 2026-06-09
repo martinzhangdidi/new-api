@@ -1,0 +1,58 @@
+# tenkb/docker-compose.yml - 本地完整测试环境
+# 数据持久化到 tenkb/data/ 目录，容器不自动删除
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: tenkb-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: 123456
+      POSTGRES_DB: new-api
+      TZ: Asia/Shanghai
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U root -d new-api"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: tenkb-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./data/redis:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  new-api:
+    build:
+      context: ..
+      dockerfile: tenkb/Dockerfile
+    container_name: tenkb-new-api
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      SQL_DSN: "postgresql://root:123456@postgres:5432/new-api?sslmode=disable"
+      REDIS_CONN_STRING: "redis://redis:6379"
+      TZ: Asia/Shanghai
+      SYNC_FREQUENCY: "60"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./data/new-api:/data

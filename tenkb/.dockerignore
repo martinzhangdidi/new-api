@@ -1,0 +1,35 @@
+# tenkb/.dockerignore - 排除不需要复制到容器的文件
+
+# 依赖目录（由 bun install 在容器中安装）
+node_modules
+
+# 构建产物（由 bun run build 在容器中生成）
+dist
+
+# 缓存目录
+.cache
+.rsbuild
+
+# 日志
+*.log
+
+# 环境文件（安全考虑）
+.env
+.env.*
+
+# IDE
+.vscode
+.idea
+
+# Git
+.git
+.gitignore
+
+# 测试
+*.test.ts
+*.test.tsx
+coverage
+
+# 其他
+.DS_Store
+Thumbs.db
