@@ -80,9 +80,10 @@ jobs:
           fi
 
       - name: Setup Nomad CLI
-        uses: hashicorp/setup-nomad@v1
-        with:
-          version: '1.7.0'
+        run: |
+          curl -fsSL https://releases.hashicorp.com/nomad/1.7.0/nomad_1.7.0_linux_amd64.zip -o /tmp/nomad.zip
+          unzip -q /tmp/nomad.zip -d /usr/local/bin/
+          nomad version
 
       - name: Deploy to Nomad
         env:
