@@ -68,6 +68,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Checkout infrastructure
+        uses: actions/checkout@v4
+        with:
+          repository: martinzhangdidi/tenkb-infra
+          path: infrastructure
+          token: ${{ secrets.GH_PAT }}
+
       - name: Set image tag
         id: vars
         run: |
