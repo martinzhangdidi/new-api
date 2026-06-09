@@ -101,7 +101,7 @@ jobs:
           echo "📦 镜像: ${{ env.ALIYUN_REGISTRY }}/${{ env.ALIYUN_NAMESPACE }}/${{ env.IMAGE_NAME }}:${{ steps.vars.outputs.IMAGE_TAG }}"
 
           nomad job run \
-            -var="image=${{ env.ALIYUN_REGISTRY }}/${{ env.ALIYUN_NAMESPACE }}/${{ env.IMAGE_NAME }}:${{ steps.vars.outputs.IMAGE_TAG }}" \
+            -var="image_tag=${{ steps.vars.outputs.IMAGE_TAG }}" \
             infrastructure/nomad/new-api.nomad.hcl
 
           echo "✅ 部署完成！"
