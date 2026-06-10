@@ -29,15 +29,16 @@ interface HeroTerminalDemoProps {
 
 // Packet types:
 //   seg 'llm'    : between LLM node and CN Relay hub
-//   seg 'trunk'  : between CN Relay and US Relay
-//   seg 'country': between US Relay and country node
-// dir 'fwd' = request  : country → hub → llm  (right-to-left)
-// dir 'bwd' = response : llm → hub → country (left-to-right)
+//   seg 'trunk'  : between CN Relay hub and a global relay node
+//   seg 'mesh'   : between global relay nodes (inter-node mesh)
+// dir 'fwd' = request  : global → cn → llm  (right-to-left)
+// dir 'bwd' = response : llm → cn → global  (left-to-right)
 interface Packet {
   id: number
-  seg: 'llm' | 'trunk' | 'country'
+  seg: 'llm' | 'trunk' | 'mesh'
   dir: 'fwd' | 'bwd'
   fromIdx: number
+  toIdx: number
   progress: number
   speed: number
   lane: number
@@ -57,19 +58,26 @@ const CHINA_ICONS: Record<string, React.ComponentType<{ size?: number }>> = {
   minimax:  (p) => <MinimaxIcon.Color  size={p.size ?? 26} />,
 }
 
-// Left relay hub (near LLMs)
-const HUB_L = { x: 210, y: 164 }
-// Right relay hub (near countries)
-const HUB_R = { x: 390, y: 164 }
+// CN Relay hub (left side, near LLMs)
+const HUB_CN = { x: 195, y: 168 }
 
-// Trunk lanes offsets (y)
-const TRUNK_LANES = [-10, -3, 3, 10]
+// Global Relay network nodes (scattered, varying sizes)
+const GLOBAL_NODES = [
+  { id: 'us',  label: '🇺🇸', x: 390, y: 72,  r: 12 },
+  { id: 'de',  label: '🇩🇪', x: 460, y: 110, r: 9 },
+  { id: 'jp',  label: '🇯🇵', x: 520, y: 60,  r: 10 },
+  { id: 'sg',  label: '🇬', x: 540, y: 150, r: 8 },
+  { id: 'br',  label: '🇧🇷', x: 420, y: 200, r: 10 },
+  { id: 'gb',  label: '��', x: 500, y: 220, r: 9 },
+  { id: 'au',  label: '🇦🇺', x: 460, y: 280, r: 8 },
+  { id: 'kr',  label: '��', x: 370, y: 270, r: 7 },
+  { id: 'fr',  label: '🇫🇷', x: 550, y: 280, r: 7 },
+]
 
-const COUNTRY_NODES = [
-  { id: 'us', label: 'United States', flag: '🇺🇸', x: 530, y: 62 },
-  { id: 'ar', label: 'Argentina',     flag: '🇦🇷', x: 530, y: 130 },
-  { id: 'es', label: 'Spain',         flag: '🇪🇸', x: 530, y: 198 },
-  { id: 'br', label: 'Brazil',        flag: '🇧🇷', x: 530, y: 266 },
+// Pre-computed mesh edges between nearby global nodes
+const MESH_EDGES: [number, number][] = [
+  [0, 1], [0, 2], [1, 3], [1, 4], [2, 3],
+  [3, 5], [4, 5], [4, 7], [5, 6], [6, 7], [6, 8], [5, 8],
 ]
 
 const STATS = [
@@ -90,14 +98,14 @@ function lerp(
 
 export function HeroTerminalDemo(props: HeroTerminalDemoProps) {
   const [packets, setPackets] = useState<Packet[]>([])
-  const rafRef        = useRef<number>(undefined)
-  const lastRef       = useRef<number>(0)
-  const llmTimer      = useRef<number>(0)
-  const trunkTimer    = useRef<number>(0)
-  const countryTimer  = useRef<number>(0)
-  const llmBwdTimer   = useRef<number>(0)
+  const rafRef       = useRef<number>(undefined)
+  const lastRef      = useRef<number>(0)
+  const llmTimer     = useRef<number>(0)
+  const trunkTimer   = useRef<number>(0)
+  const meshTimer    = useRef<number>(0)
+  const llmBwdTimer  = useRef<number>(0)
   const trunkBwdTimer = useRef<number>(0)
-  const cntryBwdTimer = useRef<number>(0)
+  const meshBwdTimer = useRef<number>(0)
 
   useEffect(() => {
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
@@ -106,67 +114,62 @@ export function HeroTerminalDemo(props: HeroTerminalDemoProps) {
     function tick(now: number) {
       const dt = Math.min((now - lastRef.current) / 1000, 0.05)
       lastRef.current = now
-      llmTimer.current     += dt
-      trunkTimer.current   += dt
-      countryTimer.current += dt
-      llmBwdTimer.current  += dt
+      llmTimer.current      += dt
+      trunkTimer.current    += dt
+      meshTimer.current     += dt
+      llmBwdTimer.current   += dt
       trunkBwdTimer.current += dt
-      cntryBwdTimer.current += dt
+      meshBwdTimer.current  += dt
 
       setPackets((prev) => {
         const next = prev
           .map((p) => ({ ...p, progress: p.progress + p.speed * dt }))
           .filter((p) => p.progress < 1)
 
-        // === RESPONSE path: LLM → CN Relay → US Relay → Country (bwd) ===
-        // bwd llm seg: llm node → hub_l
+        // === RESPONSE: LLM → CN Relay → Global nodes (bwd) ===
         if (llmBwdTimer.current > 0.2) {
           llmBwdTimer.current = 0
           const fromIdx = Math.floor(Math.random() * CHINA_NODES.length)
           const baseSpeed = 1.2 + Math.random() * 0.4
           for (let t = 0; t < 3; t++) {
-            next.push({ id: ++_pid, seg: 'llm', dir: 'bwd', fromIdx, progress: t * 0.06, speed: baseSpeed - t * 0.12, lane: 0 })
+            next.push({ id: ++_pid, seg: 'llm', dir: 'bwd', fromIdx, toIdx: 0, progress: t * 0.06, speed: baseSpeed - t * 0.12, lane: 0 })
           }
         }
-        // bwd trunk: hub_l → hub_r
-        if (trunkBwdTimer.current > 0.1) {
+        // bwd trunk: CN hub → global node
+        if (trunkBwdTimer.current > 0.12) {
           trunkBwdTimer.current = 0
-          const lane = Math.floor(Math.random() * TRUNK_LANES.length)
-          next.push({ id: ++_pid, seg: 'trunk', dir: 'bwd', fromIdx: 0, progress: Math.random() * 0.1, speed: 1.1 + Math.random() * 0.5, lane })
+          const toIdx = Math.floor(Math.random() * GLOBAL_NODES.length)
+          next.push({ id: ++_pid, seg: 'trunk', dir: 'bwd', fromIdx: 0, toIdx, progress: Math.random() * 0.08, speed: 0.9 + Math.random() * 0.5, lane: 0 })
         }
-        // bwd country: hub_r → country
-        if (cntryBwdTimer.current > 0.22) {
-          cntryBwdTimer.current = 0
-          const fromIdx = Math.floor(Math.random() * COUNTRY_NODES.length)
-          const baseSpeed = 1.1 + Math.random() * 0.4
-          for (let t = 0; t < 3; t++) {
-            next.push({ id: ++_pid, seg: 'country', dir: 'bwd', fromIdx, progress: t * 0.06, speed: baseSpeed - t * 0.1, lane: 0 })
-          }
+        // bwd mesh: between global nodes
+        if (meshBwdTimer.current > 0.25) {
+          meshBwdTimer.current = 0
+          const edgeIdx = Math.floor(Math.random() * MESH_EDGES.length)
+          const [a, b] = MESH_EDGES[edgeIdx]
+          next.push({ id: ++_pid, seg: 'mesh', dir: 'bwd', fromIdx: a, toIdx: b, progress: 0, speed: 1.0 + Math.random() * 0.6, lane: 0 })
         }
 
-        // === REQUEST path: Country → US Relay → CN Relay → LLM (fwd) ===
-        // fwd country: country → hub_r
-        if (countryTimer.current > 0.25) {
-          countryTimer.current = 0
-          const fromIdx = Math.floor(Math.random() * COUNTRY_NODES.length)
-          const baseSpeed = 1.0 + Math.random() * 0.4
-          for (let t = 0; t < 3; t++) {
-            next.push({ id: ++_pid, seg: 'country', dir: 'fwd', fromIdx, progress: t * 0.06, speed: baseSpeed - t * 0.1, lane: 0 })
-          }
-        }
-        // fwd trunk: hub_r → hub_l
-        if (trunkTimer.current > 0.09) {
+        // === REQUEST: Global nodes → CN Relay → LLM (fwd) ===
+        // fwd trunk: global node → CN hub
+        if (trunkTimer.current > 0.15) {
           trunkTimer.current = 0
-          const lane = Math.floor(Math.random() * TRUNK_LANES.length)
-          next.push({ id: ++_pid, seg: 'trunk', dir: 'fwd', fromIdx: 0, progress: Math.random() * 0.1, speed: 1.0 + Math.random() * 0.6, lane })
+          const fromIdx = Math.floor(Math.random() * GLOBAL_NODES.length)
+          next.push({ id: ++_pid, seg: 'trunk', dir: 'fwd', fromIdx, toIdx: 0, progress: Math.random() * 0.08, speed: 0.9 + Math.random() * 0.5, lane: 0 })
         }
-        // fwd llm: hub_l → llm node
+        // fwd mesh: between global nodes
+        if (meshTimer.current > 0.3) {
+          meshTimer.current = 0
+          const edgeIdx = Math.floor(Math.random() * MESH_EDGES.length)
+          const [a, b] = MESH_EDGES[edgeIdx]
+          next.push({ id: ++_pid, seg: 'mesh', dir: 'fwd', fromIdx: b, toIdx: a, progress: 0, speed: 1.0 + Math.random() * 0.6, lane: 0 })
+        }
+        // fwd llm: CN hub → llm node
         if (llmTimer.current > 0.22) {
           llmTimer.current = 0
           const fromIdx = Math.floor(Math.random() * CHINA_NODES.length)
           const baseSpeed = 1.1 + Math.random() * 0.5
           for (let t = 0; t < 3; t++) {
-            next.push({ id: ++_pid, seg: 'llm', dir: 'fwd', fromIdx, progress: t * 0.06, speed: baseSpeed - t * 0.12, lane: 0 })
+            next.push({ id: ++_pid, seg: 'llm', dir: 'fwd', fromIdx, toIdx: 0, progress: t * 0.06, speed: baseSpeed - t * 0.12, lane: 0 })
           }
         }
 
@@ -225,97 +228,66 @@ export function HeroTerminalDemo(props: HeroTerminalDemoProps) {
             aria-hidden='true'
           >
             <defs>
-              <linearGradient id='oceanGrad2' x1='0' y1='0' x2='1' y2='0'>
-                <stop offset='0%'   stopColor='#7c3aed' stopOpacity='0.04' />
-                <stop offset='50%'  stopColor='#1d4ed8' stopOpacity='0.10' />
-                <stop offset='100%' stopColor='#7c3aed' stopOpacity='0.04' />
-              </linearGradient>
-              <linearGradient id='trunkGrad' x1='0' y1='0' x2='1' y2='0'>
-                <stop offset='0%'   stopColor='rgb(239,68,68)'  stopOpacity='0.5' />
-                <stop offset='50%'  stopColor='rgb(251,146,60)' stopOpacity='0.7' />
-                <stop offset='100%' stopColor='rgb(239,68,68)'  stopOpacity='0.5' />
-              </linearGradient>
-              {/* Glow filters for packets */}
-              <filter id='glowYellow' x='-50%' y='-50%' width='200%' height='200%'>
-                <feGaussianBlur stdDeviation='3' result='blur' />
-                <feMerge><feMergeNode in='blur' /><feMergeNode in='SourceGraphic' /></feMerge>
-              </filter>
-              <filter id='glowGreen' x='-50%' y='-50%' width='200%' height='200%'>
-                <feGaussianBlur stdDeviation='2.5' result='blur' />
-                <feMerge><feMergeNode in='blur' /><feMergeNode in='SourceGraphic' /></feMerge>
-              </filter>
-              <filter id='glowBlue' x='-50%' y='-50%' width='200%' height='200%'>
-                <feGaussianBlur stdDeviation='2.5' result='blur' />
-                <feMerge><feMergeNode in='blur' /><feMergeNode in='SourceGraphic' /></feMerge>
-              </filter>
-              {/* Radial glow for hub nodes */}
               <radialGradient id='hubGlow'>
                 <stop offset='0%' stopColor='rgb(239,68,68)' stopOpacity='0.4' />
                 <stop offset='60%' stopColor='rgb(239,68,68)' stopOpacity='0.08' />
                 <stop offset='100%' stopColor='rgb(239,68,68)' stopOpacity='0' />
               </radialGradient>
+              <radialGradient id='earthGlow' cx='50%' cy='50%' r='50%'>
+                <stop offset='0%' stopColor='currentColor' stopOpacity='0.04' />
+                <stop offset='70%' stopColor='currentColor' stopOpacity='0.02' />
+                <stop offset='100%' stopColor='currentColor' stopOpacity='0' />
+              </radialGradient>
             </defs>
 
-            {/* Ocean */}
-            <rect x='130' y='8' width='340' height={H - 16} rx='6' fill='url(#oceanGrad2)' />
-            <text x='300' y={H / 2 + 4} textAnchor='middle' fontSize='9'
-              fontFamily='monospace' letterSpacing='5' fill='currentColor' opacity='0.1'>
-              PACIFIC  OCEAN
-            </text>
+            {/* ── Globe background (replaces rect) ── */}
+            <g transform={`translate(${W / 2},${H / 2})`}>
+              <circle r='145' fill='url(#earthGlow)' />
+              <circle r='140' fill='none' stroke='currentColor' strokeWidth='0.6' opacity='0.08' />
+              <circle r='100' fill='none' stroke='currentColor' strokeWidth='0.4' opacity='0.06' />
+              <ellipse rx='140' ry='50' fill='none' stroke='currentColor' strokeWidth='0.4' opacity='0.06' />
+              <ellipse rx='140' ry='90' fill='none' stroke='currentColor' strokeWidth='0.3' opacity='0.05' />
+              <ellipse rx='50' ry='140' fill='none' stroke='currentColor' strokeWidth='0.4' opacity='0.06' />
+              <ellipse rx='90' ry='140' fill='none' stroke='currentColor' strokeWidth='0.3' opacity='0.05' />
+              <line x1='-140' y1='0' x2='140' y2='0' stroke='currentColor' strokeWidth='0.3' opacity='0.05' />
+              <line x1='0' y1='-140' x2='0' y2='140' stroke='currentColor' strokeWidth='0.3' opacity='0.05' />
+            </g>
 
             {/* Region labels */}
-            <text x='68'  y='20' textAnchor='middle' fontSize='7.5' fontFamily='monospace'
+            <text x='68' y='20' textAnchor='middle' fontSize='7.5' fontFamily='monospace'
               letterSpacing='2' fill='currentColor' opacity='0.28'>CHINA</text>
-            <text x='530' y='20' textAnchor='middle' fontSize='7.5' fontFamily='monospace'
-              letterSpacing='2' fill='currentColor' opacity='0.28'>GLOBAL</text>
+            <text x='460' y='20' textAnchor='middle' fontSize='7.5' fontFamily='monospace'
+              letterSpacing='2' fill='currentColor' opacity='0.28'>GLOBAL RELAY</text>
 
-            {/* ── Flowing lines: LLM → left hub ── */}
+            {/* ── Lines: LLM nodes → CN hub ── */}
             {CHINA_NODES.map((n) => (
               <g key={n.id}>
-                <line x1={n.x} y1={n.y} x2={HUB_L.x} y2={HUB_L.y}
+                <line x1={n.x} y1={n.y} x2={HUB_CN.x} y2={HUB_CN.y}
                   stroke='rgb(167,139,250)' strokeWidth='0.6' opacity='0.15' />
-                <line x1={n.x} y1={n.y} x2={HUB_L.x} y2={HUB_L.y}
+                <line x1={n.x} y1={n.y} x2={HUB_CN.x} y2={HUB_CN.y}
                   stroke='rgb(167,139,250)' strokeWidth='1.2' strokeDasharray='6 12'
                   opacity='0.4' className='animate-flow-left' />
               </g>
             ))}
 
-            {/* ── Trunk pipes: left hub → right hub (4 parallel thick lines) ── */}
-            {TRUNK_LANES.map((dy, i) => (
-              <line key={i}
-                x1={HUB_L.x} y1={HUB_L.y + dy}
-                x2={HUB_R.x} y2={HUB_R.y + dy}
-                stroke='url(#trunkGrad)' strokeWidth='3.5' strokeLinecap='round' opacity='0.55'
-              />
-            ))}
-            {/* Trunk glow overlay */}
-            {TRUNK_LANES.map((dy, i) => (
-              <line key={`g${i}`}
-                x1={HUB_L.x} y1={HUB_L.y + dy}
-                x2={HUB_R.x} y2={HUB_R.y + dy}
-                stroke='rgb(251,146,60)' strokeWidth='1' opacity='0.25'
-              />
-            ))}
-            {/* Trunk flowing dash overlay */}
-            {TRUNK_LANES.map((dy, i) => (
-              <line key={`fd${i}`}
-                x1={HUB_L.x} y1={HUB_L.y + dy}
-                x2={HUB_R.x} y2={HUB_R.y + dy}
-                stroke='rgb(253,224,71)' strokeWidth='1.5' strokeDasharray='4 16'
-                opacity='0.5' className='animate-flow-trunk'
-                style={{ animationDelay: `${i * 0.15}s` }}
-              />
+            {/* ── Lines: CN hub → each global node (trunk) ── */}
+            {GLOBAL_NODES.map((n) => (
+              <g key={n.id}>
+                <line x1={HUB_CN.x} y1={HUB_CN.y} x2={n.x} y2={n.y}
+                  stroke='rgb(251,146,60)' strokeWidth='0.5' opacity='0.12' />
+                <line x1={HUB_CN.x} y1={HUB_CN.y} x2={n.x} y2={n.y}
+                  stroke='rgb(251,146,60)' strokeWidth='1' strokeDasharray='5 14'
+                  opacity='0.35' className='animate-flow-right' />
+              </g>
             ))}
 
-            {/* ── Flowing lines: right hub → country nodes ── */}
-            {COUNTRY_NODES.map((n) => (
-              <g key={n.id}>
-                <line x1={HUB_R.x} y1={HUB_R.y} x2={n.x} y2={n.y}
-                  stroke='rgb(96,165,250)' strokeWidth='0.6' opacity='0.15' />
-                <line x1={HUB_R.x} y1={HUB_R.y} x2={n.x} y2={n.y}
-                  stroke='rgb(96,165,250)' strokeWidth='1.2' strokeDasharray='6 12'
-                  opacity='0.4' className='animate-flow-right' />
-              </g>
+            {/* ── Mesh edges between global nodes ── */}
+            {MESH_EDGES.map(([a, b], i) => (
+              <line key={`mesh${i}`}
+                x1={GLOBAL_NODES[a].x} y1={GLOBAL_NODES[a].y}
+                x2={GLOBAL_NODES[b].x} y2={GLOBAL_NODES[b].y}
+                stroke='rgb(96,165,250)' strokeWidth='0.5' strokeDasharray='3 8'
+                opacity='0.25' className='animate-flow-mesh' />
             ))}
 
             {/* ── Animated packets with comet tails ── */}
@@ -328,20 +300,20 @@ export function HeroTerminalDemo(props: HeroTerminalDemoProps) {
               if (p.seg === 'llm') {
                 const n = CHINA_NODES[p.fromIdx]
                 if (!n) return null
-                ;[from, to] = p.dir === 'bwd' ? [n, HUB_L] : [HUB_L, n]
+                ;[from, to] = p.dir === 'bwd' ? [n, HUB_CN] : [HUB_CN, n]
                 color = p.dir === 'bwd' ? 'rgb(250,204,21)' : 'rgb(216,180,254)'
                 glowColor = p.dir === 'bwd' ? 'rgba(250,204,21,0.9)' : 'rgba(192,132,252,0.9)'
               } else if (p.seg === 'trunk') {
-                const dy = TRUNK_LANES[p.lane] ?? 0
-                ;[from, to] = p.dir === 'bwd'
-                  ? [{ x: HUB_L.x, y: HUB_L.y + dy }, { x: HUB_R.x, y: HUB_R.y + dy }]
-                  : [{ x: HUB_R.x, y: HUB_R.y + dy }, { x: HUB_L.x, y: HUB_L.y + dy }]
+                const gn = GLOBAL_NODES[p.dir === 'bwd' ? p.toIdx : p.fromIdx]
+                if (!gn) return null
+                ;[from, to] = p.dir === 'bwd' ? [HUB_CN, gn] : [gn, HUB_CN]
                 color = p.dir === 'bwd' ? 'rgb(253,224,71)' : 'rgb(253,186,116)'
                 glowColor = p.dir === 'bwd' ? 'rgba(250,204,21,1)' : 'rgba(251,146,60,1)'
-              } else if (p.seg === 'country') {
-                const n = COUNTRY_NODES[p.fromIdx]
-                if (!n) return null
-                ;[from, to] = p.dir === 'bwd' ? [HUB_R, n] : [n, HUB_R]
+              } else if (p.seg === 'mesh') {
+                const na = GLOBAL_NODES[p.fromIdx]
+                const nb = GLOBAL_NODES[p.toIdx]
+                if (!na || !nb) return null
+                from = na; to = nb
                 color = p.dir === 'bwd' ? 'rgb(134,239,172)' : 'rgb(147,197,253)'
                 glowColor = p.dir === 'bwd' ? 'rgba(74,222,128,0.9)' : 'rgba(96,165,250,0.9)'
               } else {
@@ -353,21 +325,20 @@ export function HeroTerminalDemo(props: HeroTerminalDemoProps) {
               return (
                 <g key={p.id}>
                   <line x1={tail.x} y1={tail.y} x2={pt.x} y2={pt.y}
-                    stroke={color} strokeWidth='2.5' strokeLinecap='round'
+                    stroke={color} strokeWidth='2' strokeLinecap='round'
                     opacity={0.3 + p.progress * 0.4} />
-                  <circle cx={pt.x} cy={pt.y} r='3'
+                  <circle cx={pt.x} cy={pt.y} r='2.5'
                     fill={color} opacity={0.7 + p.progress * 0.3}
-                    style={{ filter: `drop-shadow(0 0 6px ${glowColor})` }} />
+                    style={{ filter: `drop-shadow(0 0 5px ${glowColor})` }} />
                 </g>
               )
             })}
 
-            {/* ── China LLM nodes (large icons via foreignObject) ── */}
+            {/* ── China LLM nodes ── */}
             {CHINA_NODES.map((n) => {
               const IconComp = CHINA_ICONS[n.id]
               return (
                 <g key={n.id} transform={`translate(${n.x},${n.y})`}>
-                  <circle r='26' fill='rgb(139,92,246)' opacity='0.06' />
                   <circle r='22' fill='none' stroke='rgb(167,139,250)' strokeWidth='0.8'
                     opacity='0' className='animate-node-breathe' />
                   <circle r='16' fill='rgb(139,92,246)' opacity='0.08' />
@@ -382,8 +353,8 @@ export function HeroTerminalDemo(props: HeroTerminalDemoProps) {
               )
             })}
 
-            {/* ── Left tenkb hub ── */}
-            <g transform={`translate(${HUB_L.x},${HUB_L.y})`}>
+            {/* ── CN Relay hub ── */}
+            <g transform={`translate(${HUB_CN.x},${HUB_CN.y})`}>
               <circle r='40' fill='url(#hubGlow)' />
               <circle r='34' fill='none' stroke='rgb(239,68,68)' strokeWidth='1.2' opacity='0'
                 style={{ animation: 'hub-pulse 1.8s ease-out infinite' }} />
@@ -397,35 +368,18 @@ export function HeroTerminalDemo(props: HeroTerminalDemoProps) {
                 fontWeight='600' fill='currentColor' opacity='0.7'>CN Relay</text>
             </g>
 
-            {/* ── Right tenkb hub ── */}
-            <g transform={`translate(${HUB_R.x},${HUB_R.y})`}>
-              <circle r='40' fill='url(#hubGlow)' />
-              <circle r='34' fill='none' stroke='rgb(239,68,68)' strokeWidth='1.2' opacity='0'
-                style={{ animation: 'hub-pulse 1.8s ease-out infinite', animationDelay: '0.45s' }} />
-              <circle r='34' fill='none' stroke='rgb(239,68,68)' strokeWidth='1.2' opacity='0'
-                style={{ animation: 'hub-pulse 1.8s ease-out infinite', animationDelay: '1.35s' }} />
-              <circle r='22' fill='rgb(239,68,68)' opacity='0.18' />
-              <circle r='16' fill='rgb(220,38,38)' />
-              <text y='5' textAnchor='middle' fontSize='9' fontFamily='monospace'
-                fontWeight='700' fill='white' letterSpacing='0.5'>tenkb</text>
-              <text y='34' textAnchor='middle' fontSize='8.5' fontFamily='sans-serif'
-                fontWeight='600' fill='currentColor' opacity='0.7'>US Relay</text>
-            </g>
-
-            {/* ── Country nodes with flag emoji ── */}
-            {COUNTRY_NODES.map((n) => (
+            {/* ── Global relay nodes (scattered network) ── */}
+            {GLOBAL_NODES.map((n) => (
               <g key={n.id} transform={`translate(${n.x},${n.y})`}>
-                <circle r='22' fill='rgb(59,130,246)' opacity='0.05' />
-                <circle r='18' fill='none' stroke='rgb(96,165,250)' strokeWidth='0.8'
+                <circle r={n.r + 4} fill='rgb(59,130,246)' opacity='0.05' />
+                <circle r={n.r} fill='none' stroke='rgb(96,165,250)' strokeWidth='0.7'
                   opacity='0' className='animate-node-breathe' />
-                <circle r='13' fill='white' opacity='0.06' />
-                <foreignObject x='-13' y='-13' width='26' height='26' style={{ overflow: 'visible' }}>
-                  <div style={{ width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, lineHeight: 1 }}>
-                    {n.flag}
+                <circle r={n.r - 2} fill='rgb(59,130,246)' opacity='0.12' />
+                <foreignObject x={-(n.r)} y={-(n.r)} width={n.r * 2} height={n.r * 2} style={{ overflow: 'visible' }}>
+                  <div style={{ width: n.r * 2, height: n.r * 2, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: n.r, lineHeight: 1 }}>
+                    {n.label}
                   </div>
                 </foreignObject>
-                <text y='30' textAnchor='middle' fontSize='8' fontFamily='sans-serif'
-                  fontWeight='500' fill='currentColor' opacity='0.6'>{n.label}</text>
               </g>
             ))}
           </svg>
@@ -443,13 +397,13 @@ export function HeroTerminalDemo(props: HeroTerminalDemoProps) {
               0%   { stroke-dashoffset: 0; }
               100% { stroke-dashoffset: 36; }
             }
-            @keyframes flow-trunk {
+            @keyframes flow-mesh {
               0%   { stroke-dashoffset: 0; }
-              100% { stroke-dashoffset: 40; }
+              100% { stroke-dashoffset: 22; }
             }
             @keyframes node-breathe {
-              0%, 100% { opacity: 0.15; r: 18; }
-              50%      { opacity: 0.45; r: 22; }
+              0%, 100% { opacity: 0.15; }
+              50%      { opacity: 0.45; }
             }
             .animate-flow-left {
               animation: flow-left 1.2s linear infinite;
@@ -457,8 +411,8 @@ export function HeroTerminalDemo(props: HeroTerminalDemoProps) {
             .animate-flow-right {
               animation: flow-right 1.2s linear infinite;
             }
-            .animate-flow-trunk {
-              animation: flow-trunk 0.8s linear infinite;
+            .animate-flow-mesh {
+              animation: flow-mesh 1.5s linear infinite;
             }
             .animate-node-breathe {
               animation: node-breathe 2.5s ease-in-out infinite;
