@@ -226,15 +226,34 @@ export function HeroTerminalDemo(props: HeroTerminalDemoProps) {
           >
             <defs>
               <linearGradient id='oceanGrad2' x1='0' y1='0' x2='1' y2='0'>
-                <stop offset='0%'   stopColor='#7c3aed' stopOpacity='0.03' />
-                <stop offset='50%'  stopColor='#1d4ed8' stopOpacity='0.09' />
-                <stop offset='100%' stopColor='#7c3aed' stopOpacity='0.03' />
+                <stop offset='0%'   stopColor='#7c3aed' stopOpacity='0.04' />
+                <stop offset='50%'  stopColor='#1d4ed8' stopOpacity='0.10' />
+                <stop offset='100%' stopColor='#7c3aed' stopOpacity='0.04' />
               </linearGradient>
               <linearGradient id='trunkGrad' x1='0' y1='0' x2='1' y2='0'>
                 <stop offset='0%'   stopColor='rgb(239,68,68)'  stopOpacity='0.5' />
                 <stop offset='50%'  stopColor='rgb(251,146,60)' stopOpacity='0.7' />
                 <stop offset='100%' stopColor='rgb(239,68,68)'  stopOpacity='0.5' />
               </linearGradient>
+              {/* Glow filters for packets */}
+              <filter id='glowYellow' x='-50%' y='-50%' width='200%' height='200%'>
+                <feGaussianBlur stdDeviation='3' result='blur' />
+                <feMerge><feMergeNode in='blur' /><feMergeNode in='SourceGraphic' /></feMerge>
+              </filter>
+              <filter id='glowGreen' x='-50%' y='-50%' width='200%' height='200%'>
+                <feGaussianBlur stdDeviation='2.5' result='blur' />
+                <feMerge><feMergeNode in='blur' /><feMergeNode in='SourceGraphic' /></feMerge>
+              </filter>
+              <filter id='glowBlue' x='-50%' y='-50%' width='200%' height='200%'>
+                <feGaussianBlur stdDeviation='2.5' result='blur' />
+                <feMerge><feMergeNode in='blur' /><feMergeNode in='SourceGraphic' /></feMerge>
+              </filter>
+              {/* Radial glow for hub nodes */}
+              <radialGradient id='hubGlow'>
+                <stop offset='0%' stopColor='rgb(239,68,68)' stopOpacity='0.4' />
+                <stop offset='60%' stopColor='rgb(239,68,68)' stopOpacity='0.08' />
+                <stop offset='100%' stopColor='rgb(239,68,68)' stopOpacity='0' />
+              </radialGradient>
             </defs>
 
             {/* Ocean */}
@@ -250,12 +269,15 @@ export function HeroTerminalDemo(props: HeroTerminalDemoProps) {
             <text x='530' y='20' textAnchor='middle' fontSize='7.5' fontFamily='monospace'
               letterSpacing='2' fill='currentColor' opacity='0.28'>GLOBAL</text>
 
-            {/* ── Thin lines: LLM → left hub ── */}
+            {/* ── Flowing lines: LLM → left hub ── */}
             {CHINA_NODES.map((n) => (
-              <line key={n.id}
-                x1={n.x} y1={n.y} x2={HUB_L.x} y2={HUB_L.y}
-                stroke='rgb(167,139,250)' strokeWidth='0.8' strokeDasharray='3 5' opacity='0.3'
-              />
+              <g key={n.id}>
+                <line x1={n.x} y1={n.y} x2={HUB_L.x} y2={HUB_L.y}
+                  stroke='rgb(167,139,250)' strokeWidth='0.6' opacity='0.15' />
+                <line x1={n.x} y1={n.y} x2={HUB_L.x} y2={HUB_L.y}
+                  stroke='rgb(167,139,250)' strokeWidth='1.2' strokeDasharray='6 12'
+                  opacity='0.4' className='animate-flow-left' />
+              </g>
             ))}
 
             {/* ── Trunk pipes: left hub → right hub (4 parallel thick lines) ── */}
@@ -274,80 +296,70 @@ export function HeroTerminalDemo(props: HeroTerminalDemoProps) {
                 stroke='rgb(251,146,60)' strokeWidth='1' opacity='0.25'
               />
             ))}
-
-            {/* ── Thin lines: right hub → country nodes ── */}
-            {COUNTRY_NODES.map((n) => (
-              <line key={n.id}
-                x1={HUB_R.x} y1={HUB_R.y} x2={n.x} y2={n.y}
-                stroke='rgb(96,165,250)' strokeWidth='0.8' strokeDasharray='3 5' opacity='0.3'
+            {/* Trunk flowing dash overlay */}
+            {TRUNK_LANES.map((dy, i) => (
+              <line key={`fd${i}`}
+                x1={HUB_L.x} y1={HUB_L.y + dy}
+                x2={HUB_R.x} y2={HUB_R.y + dy}
+                stroke='rgb(253,224,71)' strokeWidth='1.5' strokeDasharray='4 16'
+                opacity='0.5' className='animate-flow-trunk'
+                style={{ animationDelay: `${i * 0.15}s` }}
               />
             ))}
 
-            {/* ── Animated packets (electric arc, bidirectional) ── */}
+            {/* ── Flowing lines: right hub → country nodes ── */}
+            {COUNTRY_NODES.map((n) => (
+              <g key={n.id}>
+                <line x1={HUB_R.x} y1={HUB_R.y} x2={n.x} y2={n.y}
+                  stroke='rgb(96,165,250)' strokeWidth='0.6' opacity='0.15' />
+                <line x1={HUB_R.x} y1={HUB_R.y} x2={n.x} y2={n.y}
+                  stroke='rgb(96,165,250)' strokeWidth='1.2' strokeDasharray='6 12'
+                  opacity='0.4' className='animate-flow-right' />
+              </g>
+            ))}
+
+            {/* ── Animated packets with comet tails ── */}
             {packets.map((p) => {
-              // llm seg: bwd = llm→hub_l, fwd = hub_l→llm
+              let from: { x: number; y: number }
+              let to: { x: number; y: number }
+              let color: string
+              let glowColor: string
+
               if (p.seg === 'llm') {
                 const n = CHINA_NODES[p.fromIdx]
                 if (!n) return null
-                const [from, to] = p.dir === 'bwd'
-                  ? [n, HUB_L]
-                  : [HUB_L, n]
-                const pt = lerp(from, to, p.progress)
-                // bwd=response: warm yellow-green; fwd=request: cool violet
-                const isBwd = p.dir === 'bwd'
-                const opacity = 0.45 + p.progress * 0.55
-                return (
-                  <circle key={p.id} cx={pt.x} cy={pt.y} r={isBwd ? 4 : 3.5}
-                    style={{
-                      fill: isBwd ? `rgba(250,204,21,${opacity})` : `rgba(216,180,254,${opacity})`,
-                      filter: isBwd
-                        ? 'drop-shadow(0 0 6px rgba(250,204,21,0.95))'
-                        : 'drop-shadow(0 0 6px rgba(192,132,252,0.95))',
-                    }}
-                  />
-                )
-              }
-              // trunk seg: bwd = hub_l→hub_r, fwd = hub_r→hub_l
-              if (p.seg === 'trunk') {
+                ;[from, to] = p.dir === 'bwd' ? [n, HUB_L] : [HUB_L, n]
+                color = p.dir === 'bwd' ? 'rgb(250,204,21)' : 'rgb(216,180,254)'
+                glowColor = p.dir === 'bwd' ? 'rgba(250,204,21,0.9)' : 'rgba(192,132,252,0.9)'
+              } else if (p.seg === 'trunk') {
                 const dy = TRUNK_LANES[p.lane] ?? 0
-                const [from, to] = p.dir === 'bwd'
+                ;[from, to] = p.dir === 'bwd'
                   ? [{ x: HUB_L.x, y: HUB_L.y + dy }, { x: HUB_R.x, y: HUB_R.y + dy }]
                   : [{ x: HUB_R.x, y: HUB_R.y + dy }, { x: HUB_L.x, y: HUB_L.y + dy }]
-                const pt = lerp(from, to, p.progress)
-                const isBwd = p.dir === 'bwd'
-                return (
-                  <circle key={p.id} cx={pt.x} cy={pt.y} r='3.5'
-                    style={{
-                      fill: isBwd ? 'rgb(253,224,71)' : 'rgb(253,186,116)',
-                      filter: isBwd
-                        ? 'drop-shadow(0 0 7px rgba(250,204,21,1))'
-                        : 'drop-shadow(0 0 7px rgba(251,146,60,1))',
-                    }}
-                  />
-                )
-              }
-              // country seg: bwd = hub_r→country, fwd = country→hub_r
-              if (p.seg === 'country') {
+                color = p.dir === 'bwd' ? 'rgb(253,224,71)' : 'rgb(253,186,116)'
+                glowColor = p.dir === 'bwd' ? 'rgba(250,204,21,1)' : 'rgba(251,146,60,1)'
+              } else if (p.seg === 'country') {
                 const n = COUNTRY_NODES[p.fromIdx]
                 if (!n) return null
-                const [from, to] = p.dir === 'bwd'
-                  ? [HUB_R, n]
-                  : [n, HUB_R]
-                const pt = lerp(from, to, p.progress)
-                const isBwd = p.dir === 'bwd'
-                const opacity = 0.45 + (isBwd ? (1 - p.progress) : p.progress) * 0.55
-                return (
-                  <circle key={p.id} cx={pt.x} cy={pt.y} r='4'
-                    style={{
-                      fill: isBwd ? `rgba(134,239,172,${opacity})` : `rgba(147,197,253,${opacity})`,
-                      filter: isBwd
-                        ? 'drop-shadow(0 0 6px rgba(74,222,128,0.95))'
-                        : 'drop-shadow(0 0 6px rgba(96,165,250,0.95))',
-                    }}
-                  />
-                )
+                ;[from, to] = p.dir === 'bwd' ? [HUB_R, n] : [n, HUB_R]
+                color = p.dir === 'bwd' ? 'rgb(134,239,172)' : 'rgb(147,197,253)'
+                glowColor = p.dir === 'bwd' ? 'rgba(74,222,128,0.9)' : 'rgba(96,165,250,0.9)'
+              } else {
+                return null
               }
-              return null
+
+              const pt = lerp(from, to, p.progress)
+              const tail = lerp(from, to, Math.max(0, p.progress - 0.12))
+              return (
+                <g key={p.id}>
+                  <line x1={tail.x} y1={tail.y} x2={pt.x} y2={pt.y}
+                    stroke={color} strokeWidth='2.5' strokeLinecap='round'
+                    opacity={0.3 + p.progress * 0.4} />
+                  <circle cx={pt.x} cy={pt.y} r='3'
+                    fill={color} opacity={0.7 + p.progress * 0.3}
+                    style={{ filter: `drop-shadow(0 0 6px ${glowColor})` }} />
+                </g>
+              )
             })}
 
             {/* ── China LLM nodes (large icons via foreignObject) ── */}
@@ -355,13 +367,16 @@ export function HeroTerminalDemo(props: HeroTerminalDemoProps) {
               const IconComp = CHINA_ICONS[n.id]
               return (
                 <g key={n.id} transform={`translate(${n.x},${n.y})`}>
-                  <circle r='22' fill='rgb(139,92,246)' opacity='0.08' />
+                  <circle r='26' fill='rgb(139,92,246)' opacity='0.06' />
+                  <circle r='22' fill='none' stroke='rgb(167,139,250)' strokeWidth='0.8'
+                    opacity='0' className='animate-node-breathe' />
+                  <circle r='16' fill='rgb(139,92,246)' opacity='0.08' />
                   <foreignObject x='-14' y='-14' width='28' height='28' style={{ overflow: 'visible' }}>
                     <div style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       {IconComp ? <IconComp size={26} /> : null}
                     </div>
                   </foreignObject>
-                  <text y='30' textAnchor='middle' fontSize='8.5' fontFamily='sans-serif'
+                  <text y='32' textAnchor='middle' fontSize='8.5' fontFamily='sans-serif'
                     fontWeight='600' fill='currentColor' opacity='0.6'>{n.label}</text>
                 </g>
               )
@@ -369,44 +384,47 @@ export function HeroTerminalDemo(props: HeroTerminalDemoProps) {
 
             {/* ── Left tenkb hub ── */}
             <g transform={`translate(${HUB_L.x},${HUB_L.y})`}>
+              <circle r='40' fill='url(#hubGlow)' />
               <circle r='34' fill='none' stroke='rgb(239,68,68)' strokeWidth='1.2' opacity='0'
                 style={{ animation: 'hub-pulse 1.8s ease-out infinite' }} />
               <circle r='34' fill='none' stroke='rgb(239,68,68)' strokeWidth='1.2' opacity='0'
                 style={{ animation: 'hub-pulse 1.8s ease-out infinite', animationDelay: '0.9s' }} />
-              <circle r='22' fill='rgb(239,68,68)' opacity='0.15' />
+              <circle r='22' fill='rgb(239,68,68)' opacity='0.18' />
               <circle r='16' fill='rgb(220,38,38)' />
               <text y='5' textAnchor='middle' fontSize='9' fontFamily='monospace'
                 fontWeight='700' fill='white' letterSpacing='0.5'>tenkb</text>
-              <text y='32' textAnchor='middle' fontSize='8.5' fontFamily='sans-serif'
+              <text y='34' textAnchor='middle' fontSize='8.5' fontFamily='sans-serif'
                 fontWeight='600' fill='currentColor' opacity='0.7'>CN Relay</text>
             </g>
 
             {/* ── Right tenkb hub ── */}
             <g transform={`translate(${HUB_R.x},${HUB_R.y})`}>
+              <circle r='40' fill='url(#hubGlow)' />
               <circle r='34' fill='none' stroke='rgb(239,68,68)' strokeWidth='1.2' opacity='0'
                 style={{ animation: 'hub-pulse 1.8s ease-out infinite', animationDelay: '0.45s' }} />
               <circle r='34' fill='none' stroke='rgb(239,68,68)' strokeWidth='1.2' opacity='0'
                 style={{ animation: 'hub-pulse 1.8s ease-out infinite', animationDelay: '1.35s' }} />
-              <circle r='22' fill='rgb(239,68,68)' opacity='0.15' />
+              <circle r='22' fill='rgb(239,68,68)' opacity='0.18' />
               <circle r='16' fill='rgb(220,38,38)' />
               <text y='5' textAnchor='middle' fontSize='9' fontFamily='monospace'
                 fontWeight='700' fill='white' letterSpacing='0.5'>tenkb</text>
-              <text y='32' textAnchor='middle' fontSize='8.5' fontFamily='sans-serif'
+              <text y='34' textAnchor='middle' fontSize='8.5' fontFamily='sans-serif'
                 fontWeight='600' fill='currentColor' opacity='0.7'>US Relay</text>
             </g>
 
             {/* ── Country nodes with flag emoji ── */}
             {COUNTRY_NODES.map((n) => (
               <g key={n.id} transform={`translate(${n.x},${n.y})`}>
-                <circle r='18' fill='rgb(59,130,246)' opacity='0.08' />
-                {/* Flag circle */}
+                <circle r='22' fill='rgb(59,130,246)' opacity='0.05' />
+                <circle r='18' fill='none' stroke='rgb(96,165,250)' strokeWidth='0.8'
+                  opacity='0' className='animate-node-breathe' />
                 <circle r='13' fill='white' opacity='0.06' />
                 <foreignObject x='-13' y='-13' width='26' height='26' style={{ overflow: 'visible' }}>
                   <div style={{ width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, lineHeight: 1 }}>
                     {n.flag}
                   </div>
                 </foreignObject>
-                <text y='28' textAnchor='middle' fontSize='8' fontFamily='sans-serif'
+                <text y='30' textAnchor='middle' fontSize='8' fontFamily='sans-serif'
                   fontWeight='500' fill='currentColor' opacity='0.6'>{n.label}</text>
               </g>
             ))}
@@ -416,6 +434,34 @@ export function HeroTerminalDemo(props: HeroTerminalDemoProps) {
             @keyframes hub-pulse {
               0%   { r: 14; opacity: 0.65; }
               100% { r: 34; opacity: 0; }
+            }
+            @keyframes flow-left {
+              0%   { stroke-dashoffset: 0; }
+              100% { stroke-dashoffset: -36; }
+            }
+            @keyframes flow-right {
+              0%   { stroke-dashoffset: 0; }
+              100% { stroke-dashoffset: 36; }
+            }
+            @keyframes flow-trunk {
+              0%   { stroke-dashoffset: 0; }
+              100% { stroke-dashoffset: 40; }
+            }
+            @keyframes node-breathe {
+              0%, 100% { opacity: 0.15; r: 18; }
+              50%      { opacity: 0.45; r: 22; }
+            }
+            .animate-flow-left {
+              animation: flow-left 1.2s linear infinite;
+            }
+            .animate-flow-right {
+              animation: flow-right 1.2s linear infinite;
+            }
+            .animate-flow-trunk {
+              animation: flow-trunk 0.8s linear infinite;
+            }
+            .animate-node-breathe {
+              animation: node-breathe 2.5s ease-in-out infinite;
             }
           `}</style>
         </div>
