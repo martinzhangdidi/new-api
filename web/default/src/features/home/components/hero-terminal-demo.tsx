@@ -273,11 +273,14 @@ export function HeroTerminalDemo(props: HeroTerminalDemoProps) {
             {/* ── Lines: CN hub → each global node (trunk) ── */}
             {GLOBAL_NODES.map((n) => (
               <g key={n.id}>
+                {/* sturdy pipe base */}
                 <line x1={HUB_CN.x} y1={HUB_CN.y} x2={n.x} y2={n.y}
-                  stroke='rgb(251,146,60)' strokeWidth='0.5' opacity='0.12' />
+                  stroke='rgb(251,146,60)' strokeWidth='2.8' opacity='0.18' strokeLinecap='round' />
                 <line x1={HUB_CN.x} y1={HUB_CN.y} x2={n.x} y2={n.y}
-                  stroke='rgb(251,146,60)' strokeWidth='1' strokeDasharray='5 14'
-                  opacity='0.35' className='animate-flow-right' />
+                  stroke='rgb(253,186,116)' strokeWidth='1.2' opacity='0.35' strokeLinecap='round' />
+                <line x1={HUB_CN.x} y1={HUB_CN.y} x2={n.x} y2={n.y}
+                  stroke='rgb(251,146,60)' strokeWidth='1.6' strokeDasharray='6 18'
+                  opacity='0.45' className='animate-flow-right' strokeLinecap='round' />
               </g>
             ))}
 
