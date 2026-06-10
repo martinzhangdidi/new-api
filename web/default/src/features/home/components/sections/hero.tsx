@@ -109,25 +109,21 @@ export function Hero(props: HeroProps) {
               <span className='absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-400 opacity-75' />
               <span className='relative inline-flex size-1.5 rounded-full bg-blue-500 dark:bg-blue-400' />
             </span>
-            <span>{t('Trans-Pacific AI Gateway · TSP Architecture')}</span>
+            <span>{t('AI Gateway · tenkb Architecture')}</span>
           </div>
 
           <h1
             className='landing-animate-fade-up text-[clamp(2.25rem,4.5vw,3.25rem)] leading-[1.15] font-bold tracking-tight'
             style={{ animationDelay: '60ms' }}
           >
-            {t('High-Speed Trans-Pacific Gateway')}
-            <br />
-            <span className='bg-gradient-to-r from-blue-400 via-violet-400 to-purple-500 bg-clip-text text-transparent'>
-              {t('Powered by TSP Architecture')}
-            </span>
+            {t("One pipeline to the world's fastest-growing AI infrastructure.")}
           </h1>
           <p
             className='landing-animate-fade-up text-muted-foreground/80 mt-5 max-w-xl text-base leading-relaxed opacity-0 md:text-[15px]'
             style={{ animationDelay: '120ms' }}
           >
             {t(
-              'Cross-Pacific undersea fiber routes suffer from severe random packet loss, causing constant stutters and 504 errors. tenkb solves this at the network layer—Go-runtime QUIC/UDP engine, BBR3 congestion control, and a zero-knowledge data flow that routes your AI requests directly to China\'s cost-efficient compute clusters.'
+              'Affordable, stable, and fast. tenkb solves trans-Pacific packet loss with a Go-runtime QUIC/UDP engine, BBR3 congestion control, and zero-knowledge data flow.'
             )}
           </p>
 

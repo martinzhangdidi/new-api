@@ -63,15 +63,15 @@ const HUB_CN = { x: 195, y: 168 }
 
 // Global Relay network nodes (Americas + Spain, larger relay-like sizes)
 const GLOBAL_NODES = [
-  { id: 'us',  label: 'US',  x: 390, y: 68,  r: 18 },
-  { id: 'ca',  label: 'CA',  x: 470, y: 55,  r: 15 },
-  { id: 'mx',  label: 'MX',  x: 540, y: 90,  r: 14 },
-  { id: 'br',  label: 'BR',  x: 530, y: 170, r: 16 },
-  { id: 'ar',  label: 'AR',  x: 440, y: 200, r: 14 },
-  { id: 'cl',  label: 'CL',  x: 540, y: 250, r: 13 },
-  { id: 'co',  label: 'CO',  x: 380, y: 180, r: 13 },
-  { id: 'pe',  label: 'PE',  x: 450, y: 280, r: 12 },
-  { id: 'es',  label: 'ES',  x: 370, y: 270, r: 14 },
+  { id: 'us',  label: '\u{1F1FA}\u{1F1F8}', x: 390, y: 68,  r: 22 },
+  { id: 'ca',  label: '\u{1F1E8}\u{1F1E6}', x: 470, y: 55,  r: 18 },
+  { id: 'mx',  label: '\u{1F1F2}\u{1F1FD}', x: 545, y: 95,  r: 17 },
+  { id: 'br',  label: '\u{1F1E7}\u{1F1F7}', x: 535, y: 175, r: 20 },
+  { id: 'ar',  label: '\u{1F1E6}\u{1F1F7}', x: 440, y: 205, r: 17 },
+  { id: 'cl',  label: '\u{1F1E8}\u{1F1F1}', x: 545, y: 255, r: 16 },
+  { id: 'co',  label: '\u{1F1E8}\u{1F1F4}', x: 380, y: 180, r: 16 },
+  { id: 'pe',  label: '\u{1F1F5}\u{1F1EA}', x: 450, y: 285, r: 15 },
+  { id: 'es',  label: '\u{1F1EA}\u{1F1F8}', x: 370, y: 275, r: 17 },
 ]
 
 // Pre-computed mesh edges between nearby global nodes
@@ -371,13 +371,15 @@ export function HeroTerminalDemo(props: HeroTerminalDemoProps) {
             {/* ── Global relay nodes (scattered network) ── */}
             {GLOBAL_NODES.map((n) => (
               <g key={n.id} transform={`translate(${n.x},${n.y})`}>
-                <circle r={n.r + 6} fill='rgb(59,130,246)' opacity='0.04' />
-                <circle r={n.r + 2} fill='none' stroke='rgb(96,165,250)' strokeWidth='0.8'
+                <circle r={n.r + 6} fill='rgb(59,130,246)' opacity='0.05' />
+                <circle r={n.r + 2} fill='none' stroke='rgb(96,165,250)' strokeWidth='1'
                   opacity='0' className='animate-node-breathe' />
-                <circle r={n.r} fill='rgb(30,64,175)' opacity='0.15' />
-                <circle r={n.r - 3} fill='rgb(59,130,246)' opacity='0.2' />
-                <text y='4' textAnchor='middle' fontSize={n.r * 0.7} fontFamily='monospace'
-                  fontWeight='700' fill='currentColor' opacity='0.7'>{n.label}</text>
+                <circle r={n.r} fill='rgb(30,64,175)' opacity='0.12' />
+                <foreignObject x={-(n.r - 2)} y={-(n.r - 2)} width={(n.r - 2) * 2} height={(n.r - 2) * 2} style={{ overflow: 'visible' }}>
+                  <div style={{ width: (n.r - 2) * 2, height: (n.r - 2) * 2, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: n.r * 1.1, lineHeight: 1 }}>
+                    {n.label}
+                  </div>
+                </foreignObject>
               </g>
             ))}
           </svg>

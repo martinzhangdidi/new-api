@@ -61,7 +61,7 @@ export function CTA(props: CTAProps) {
         </h2>
         <p className='text-muted-foreground/80 mx-auto mt-5 max-w-md text-sm leading-relaxed md:text-base'>
           {t(
-            'Stop fighting packet loss. Deploy your own TSP Architecture gateway and start routing AI requests through China\'s most cost-efficient compute clusters in minutes.'
+            'Stop fighting packet loss. Deploy your own tenkb Architecture gateway and start routing AI requests through China\'s most cost-efficient compute clusters in minutes.'
           )}
         </p>
         <div className='mt-8 flex items-center justify-center gap-3'>

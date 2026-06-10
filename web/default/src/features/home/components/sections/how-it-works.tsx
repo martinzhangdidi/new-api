@@ -34,7 +34,7 @@ export function HowItWorks() {
     },
     {
       num: '2',
-      title: t('Route via TSP'),
+      title: t('Route via tenkb'),
       desc: t(
         'Your requests tunnel through our QUIC/BBR3 optimized Trans-Pacific pipeline automatically'
       ),
