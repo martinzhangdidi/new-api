@@ -123,7 +123,7 @@ export function Hero(props: HeroProps) {
             style={{ animationDelay: '120ms' }}
           >
             {t(
-              'Affordable, stable, and fast. tenkb solves trans-Pacific packet loss with a Go-runtime QUIC/UDP engine, BBR3 congestion control, and zero-knowledge data flow.'
+              'Affordable, stable, and fast. tenkb solves transcontinental packet loss with a Go-runtime QUIC/UDP engine, BBR3 congestion control, and zero-knowledge data flow.'
             )}
           </p>
 

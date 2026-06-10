@@ -181,16 +181,25 @@ export function Features(_props: FeaturesProps) {
   return (
     <section className='relative z-10 px-6 py-24 md:py-32'>
       <div className='mx-auto max-w-6xl'>
-        <AnimateInView className='mb-16 max-w-lg'>
-          <p className='text-muted-foreground mb-3 text-xs font-medium tracking-widest uppercase'>
-            {t('Core Features')}
-          </p>
-          <h2 className='text-2xl leading-tight font-bold tracking-tight md:text-3xl'>
-            {t('Built for the Trans-Pacific gap,')}
-            <br />
-            {t('engineered for enterprise scale')}
-          </h2>
-        </AnimateInView>
+        <div className='mb-16 flex flex-col items-center gap-8 md:flex-row md:justify-between'>
+          <AnimateInView className='max-w-lg'>
+            <p className='text-muted-foreground mb-3 text-xs font-medium tracking-widest uppercase'>
+              {t('Core Features')}
+            </p>
+            <h2 className='text-2xl leading-tight font-bold tracking-tight md:text-3xl'>
+              {t('Built for the Transcontinental gap,')}
+              <br />
+              {t('engineered for enterprise scale')}
+            </h2>
+          </AnimateInView>
+          <AnimateInView animation='scale-in' delay={200}>
+            <img
+              src='/450x450.png'
+              alt='illustration'
+              className='h-48 w-48 rounded-xl object-cover md:h-64 md:w-64'
+            />
+          </AnimateInView>
+        </div>
 
         {/* Bento grid */}
         <div className='border-border/40 bg-border/40 grid gap-px overflow-hidden rounded-xl border md:grid-cols-3'>

@@ -36,7 +36,7 @@ export function HowItWorks() {
       num: '2',
       title: t('Route via tenkb'),
       desc: t(
-        'Your requests tunnel through our QUIC/BBR3 optimized Trans-Pacific pipeline automatically'
+        'Your requests tunnel through our QUIC/BBR3 optimized Transcontinental pipeline automatically'
       ),
       icon: <Zap className='size-6' strokeWidth={1.5} />,
     },
