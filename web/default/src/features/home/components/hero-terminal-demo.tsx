@@ -61,17 +61,17 @@ const CHINA_ICONS: Record<string, React.ComponentType<{ size?: number }>> = {
 // CN Relay hub (left side, near LLMs)
 const HUB_CN = { x: 195, y: 168 }
 
-// Global Relay network nodes (scattered, varying sizes)
+// Global Relay network nodes (Americas + Spain, larger relay-like sizes)
 const GLOBAL_NODES = [
-  { id: 'us',  label: '🇺🇸', x: 390, y: 72,  r: 12 },
-  { id: 'de',  label: '🇩🇪', x: 460, y: 110, r: 9 },
-  { id: 'jp',  label: '🇯🇵', x: 520, y: 60,  r: 10 },
-  { id: 'sg',  label: '🇬', x: 540, y: 150, r: 8 },
-  { id: 'br',  label: '🇧🇷', x: 420, y: 200, r: 10 },
-  { id: 'gb',  label: '��', x: 500, y: 220, r: 9 },
-  { id: 'au',  label: '🇦🇺', x: 460, y: 280, r: 8 },
-  { id: 'kr',  label: '��', x: 370, y: 270, r: 7 },
-  { id: 'fr',  label: '🇫🇷', x: 550, y: 280, r: 7 },
+  { id: 'us',  label: 'US',  x: 390, y: 68,  r: 18 },
+  { id: 'ca',  label: 'CA',  x: 470, y: 55,  r: 15 },
+  { id: 'mx',  label: 'MX',  x: 540, y: 90,  r: 14 },
+  { id: 'br',  label: 'BR',  x: 530, y: 170, r: 16 },
+  { id: 'ar',  label: 'AR',  x: 440, y: 200, r: 14 },
+  { id: 'cl',  label: 'CL',  x: 540, y: 250, r: 13 },
+  { id: 'co',  label: 'CO',  x: 380, y: 180, r: 13 },
+  { id: 'pe',  label: 'PE',  x: 450, y: 280, r: 12 },
+  { id: 'es',  label: 'ES',  x: 370, y: 270, r: 14 },
 ]
 
 // Pre-computed mesh edges between nearby global nodes
@@ -254,10 +254,10 @@ export function HeroTerminalDemo(props: HeroTerminalDemoProps) {
             </g>
 
             {/* Region labels */}
-            <text x='68' y='20' textAnchor='middle' fontSize='7.5' fontFamily='monospace'
-              letterSpacing='2' fill='currentColor' opacity='0.28'>CHINA</text>
-            <text x='460' y='20' textAnchor='middle' fontSize='7.5' fontFamily='monospace'
-              letterSpacing='2' fill='currentColor' opacity='0.28'>GLOBAL RELAY</text>
+            <text x='68' y='22' textAnchor='middle' fontSize='10' fontFamily='monospace'
+              fontWeight='700' letterSpacing='2' fill='currentColor' opacity='0.55'>CHINA</text>
+            <text x='460' y='22' textAnchor='middle' fontSize='10' fontFamily='monospace'
+              fontWeight='700' letterSpacing='2' fill='currentColor' opacity='0.55'>GLOBAL RELAY</text>
 
             {/* ── Lines: LLM nodes → CN hub ── */}
             {CHINA_NODES.map((n) => (
@@ -371,15 +371,13 @@ export function HeroTerminalDemo(props: HeroTerminalDemoProps) {
             {/* ── Global relay nodes (scattered network) ── */}
             {GLOBAL_NODES.map((n) => (
               <g key={n.id} transform={`translate(${n.x},${n.y})`}>
-                <circle r={n.r + 4} fill='rgb(59,130,246)' opacity='0.05' />
-                <circle r={n.r} fill='none' stroke='rgb(96,165,250)' strokeWidth='0.7'
+                <circle r={n.r + 6} fill='rgb(59,130,246)' opacity='0.04' />
+                <circle r={n.r + 2} fill='none' stroke='rgb(96,165,250)' strokeWidth='0.8'
                   opacity='0' className='animate-node-breathe' />
-                <circle r={n.r - 2} fill='rgb(59,130,246)' opacity='0.12' />
-                <foreignObject x={-(n.r)} y={-(n.r)} width={n.r * 2} height={n.r * 2} style={{ overflow: 'visible' }}>
-                  <div style={{ width: n.r * 2, height: n.r * 2, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: n.r, lineHeight: 1 }}>
-                    {n.label}
-                  </div>
-                </foreignObject>
+                <circle r={n.r} fill='rgb(30,64,175)' opacity='0.15' />
+                <circle r={n.r - 3} fill='rgb(59,130,246)' opacity='0.2' />
+                <text y='4' textAnchor='middle' fontSize={n.r * 0.7} fontFamily='monospace'
+                  fontWeight='700' fill='currentColor' opacity='0.7'>{n.label}</text>
               </g>
             ))}
           </svg>
