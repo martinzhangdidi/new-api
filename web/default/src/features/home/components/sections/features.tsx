@@ -40,15 +40,15 @@ export function Features(_props: FeaturesProps) {
     {
       id: 'fast',
       num: '01',
-      title: t('Lightning Fast'),
+      title: t('Compute Cost Advantage'),
       desc: t(
-        'Optimized network architecture ensures millisecond response times'
+        'Tap into China\'s massive supercomputing clusters via tenkb\'s optimized trans-oceanic transit. We transform the macroeconomic infrastructure dividend into direct cost savings—industry-leading price per token.'
       ),
       span: 'md:col-span-2',
       icon: <Zap className='size-4 text-blue-400' />,
       visual: (
         <div className='mt-4 grid grid-cols-3 gap-2'>
-          {['OpenAI', 'Claude', 'Gemini', 'DeepSeek', 'Qwen', 'Llama'].map(
+          {['DeepSeek', 'Qwen', 'Baidu', 'Zhipu', 'MiniMax', 'Yi'].map(
             (name) => (
               <div
                 key={name}
@@ -64,9 +64,9 @@ export function Features(_props: FeaturesProps) {
     {
       id: 'secure',
       num: '02',
-      title: t('Secure & Reliable'),
+      title: t('QUIC/BBR3 Multi-Stream'),
       desc: t(
-        'Enterprise-grade security with comprehensive permission management'
+        'Replaces fragile TCP handshakes with QUIC/UDP multi-concurrent streams and BBR3 congestion control—stutter-free SSE streaming even at 30% packet loss.'
       ),
       span: 'md:col-span-1',
       icon: <Shield className='size-4 text-emerald-400' />,
@@ -101,13 +101,13 @@ export function Features(_props: FeaturesProps) {
     {
       id: 'global',
       num: '03',
-      title: t('Global Coverage'),
-      desc: t('Multi-region deployment for stable global access'),
+      title: t('Decoupled Zero-Knowledge'),
+      desc: t('Our RESTful Metrics Engine audits only token counts and bandwidth for billing. Prompt payloads are processed in volatile memory—retention is structurally impossible.'),
       span: 'md:col-span-1',
       icon: <Globe className='size-4 text-violet-400' />,
       visual: (
         <div className='mt-4 space-y-2'>
-          {[t('Load Balancing'), t('Rate Limiting'), t('Cost Tracking')].map(
+          {[t('Token Count'), t('Bandwidth'), t('Payload → /dev/null')].map(
             (step, i) => (
               <div key={step} className='flex items-center gap-2'>
                 <div
@@ -130,14 +130,14 @@ export function Features(_props: FeaturesProps) {
     {
       id: 'developer',
       num: '04',
-      title: t('Developer Friendly'),
-      desc: t('Compatible API routes for common AI application workflows'),
+      title: t('Reverse Proxy & Compliance'),
+      desc: t('Caddy-powered automated TLS hot-reloading with built-in ACL outbound rules. Your encrypted tunnel only speaks to verified official LLM endpoints—zero intranet penetration risk.'),
       span: 'md:col-span-2',
       icon: <Code className='size-4 text-amber-400' />,
       visual: (
         <div className='mt-4 flex items-center gap-3'>
           <div className='flex -space-x-2'>
-            {['API', 'SDK', 'CLI', 'Docs'].map((n) => (
+            {['ACL', 'TLS', 'ACME', 'Caddy'].map((n) => (
               <div
                 key={n}
                 className='border-background from-muted to-muted/60 text-muted-foreground flex size-8 items-center justify-center rounded-full border-2 bg-gradient-to-br text-[9px] font-bold'
@@ -158,23 +158,23 @@ export function Features(_props: FeaturesProps) {
   const additionalFeatures = [
     {
       icon: <Gauge className='size-5' strokeWidth={1.5} />,
-      title: t('High Performance'),
-      desc: t('Support for high concurrency with automatic load balancing'),
+      title: t('Go-Runtime Engine'),
+      desc: t('Built on high-performance Go-runtime with goroutine concurrency and adaptive routing'),
     },
     {
       icon: <DollarSign className='size-5' strokeWidth={1.5} />,
-      title: t('Transparent Billing'),
-      desc: t('Pay-as-you-go with real-time usage monitoring'),
+      title: t('Token-Based Billing'),
+      desc: t('Pay-as-you-go. RESTful metrics tracker logs only traffic volume—never your content'),
     },
     {
       icon: <Users className='size-5' strokeWidth={1.5} />,
-      title: t('Team Collaboration'),
-      desc: t('Multi-user management with flexible permission allocation'),
+      title: t('Team & Key Management'),
+      desc: t('Multi-user access with flexible token quota allocation and role-based permissions'),
     },
     {
       icon: <HeartHandshake className='size-5' strokeWidth={1.5} />,
-      title: t('Open Source'),
-      desc: t('Community driven, self-hosted, and extensible'),
+      title: t('Open & Self-Hosted'),
+      desc: t('Community-driven, fully self-hostable. Deploy on your own infrastructure in minutes'),
     },
   ]
 
@@ -186,9 +186,9 @@ export function Features(_props: FeaturesProps) {
             {t('Core Features')}
           </p>
           <h2 className='text-2xl leading-tight font-bold tracking-tight md:text-3xl'>
-            {t('Built for developers,')}
+            {t('Built for the Trans-Pacific gap,')}
             <br />
-            {t('designed for scale')}
+            {t('engineered for enterprise scale')}
           </h2>
         </AnimateInView>
 

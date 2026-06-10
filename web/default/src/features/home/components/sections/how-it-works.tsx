@@ -26,24 +26,24 @@ export function HowItWorks() {
   const steps = [
     {
       num: '1',
-      title: t('Configure'),
+      title: t('Connect Your Keys'),
       desc: t(
-        'Add your API keys, set up channels and configure access permissions'
+        'Add your China LLM API keys—DeepSeek, Qwen, and 50+ providers—in one dashboard'
       ),
       icon: <Settings className='size-6' strokeWidth={1.5} />,
     },
     {
       num: '2',
-      title: t('Connect'),
+      title: t('Route via TSP'),
       desc: t(
-        'Connect through OpenAI, Claude, Gemini, and other compatible API routes'
+        'Your requests tunnel through our QUIC/BBR3 optimized Trans-Pacific pipeline automatically'
       ),
       icon: <Zap className='size-6' strokeWidth={1.5} />,
     },
     {
       num: '3',
-      title: t('Monitor'),
-      desc: t('Track usage, costs and performance with real-time analytics'),
+      title: t('Track & Optimize'),
+      desc: t('Real-time token usage, latency metrics, and cost analytics—all in your dashboard'),
       icon: <BarChart3 className='size-6' strokeWidth={1.5} />,
     },
   ]
@@ -56,7 +56,7 @@ export function HowItWorks() {
             {t('How It Works')}
           </p>
           <h2 className='text-2xl font-bold tracking-tight md:text-3xl'>
-            {t('Three steps to get started')}
+            {t('Up and running in three steps')}
           </h2>
         </AnimateInView>
 
