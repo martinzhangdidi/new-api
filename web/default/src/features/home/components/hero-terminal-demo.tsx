@@ -45,10 +45,10 @@ interface Packet {
 }
 
 const CHINA_NODES = [
-  { id: 'deepseek', label: 'DeepSeek', x: 68, y: 62 },
-  { id: 'qwen',     label: 'Qwen',     x: 68, y: 130 },
-  { id: 'zhipu',    label: 'Zhipu',    x: 68, y: 198 },
-  { id: 'minimax',  label: 'MiniMax',  x: 68, y: 266 },
+  { id: 'deepseek', label: 'DeepSeek', x: 68, y: 50 },
+  { id: 'qwen',     label: 'Qwen',     x: 68, y: 134 },
+  { id: 'zhipu',    label: 'Zhipu',    x: 68, y: 218 },
+  { id: 'minimax',  label: 'MiniMax',  x: 68, y: 302 },
 ]
 
 const CHINA_ICONS: Record<string, React.ComponentType<{ size?: number }>> = {
@@ -254,9 +254,9 @@ export function HeroTerminalDemo(props: HeroTerminalDemoProps) {
             </g>
 
             {/* Region labels */}
-            <text x='68' y='22' textAnchor='middle' fontSize='10' fontFamily='monospace'
+            <text x='68' y='8' textAnchor='middle' fontSize='10' fontFamily='monospace'
               fontWeight='700' letterSpacing='2' fill='currentColor' opacity='0.55'>CHINA</text>
-            <text x='460' y='22' textAnchor='middle' fontSize='10' fontFamily='monospace'
+            <text x='460' y='8' textAnchor='middle' fontSize='10' fontFamily='monospace'
               fontWeight='700' letterSpacing='2' fill='currentColor' opacity='0.55'>GLOBAL RELAY</text>
 
             {/* ── Lines: LLM nodes → CN hub ── */}
@@ -339,15 +339,15 @@ export function HeroTerminalDemo(props: HeroTerminalDemoProps) {
               const IconComp = CHINA_ICONS[n.id]
               return (
                 <g key={n.id} transform={`translate(${n.x},${n.y})`}>
-                  <circle r='22' fill='none' stroke='rgb(167,139,250)' strokeWidth='0.8'
+                  <circle r='32' fill='none' stroke='rgb(167,139,250)' strokeWidth='0.8'
                     opacity='0' className='animate-node-breathe' />
-                  <circle r='16' fill='rgb(139,92,246)' opacity='0.08' />
-                  <foreignObject x='-14' y='-14' width='28' height='28' style={{ overflow: 'visible' }}>
-                    <div style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      {IconComp ? <IconComp size={26} /> : null}
+                  <circle r='24' fill='rgb(139,92,246)' opacity='0.08' />
+                  <foreignObject x='-20' y='-20' width='40' height='40' style={{ overflow: 'visible' }}>
+                    <div style={{ width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {IconComp ? <IconComp size={38} /> : null}
                     </div>
                   </foreignObject>
-                  <text y='32' textAnchor='middle' fontSize='8.5' fontFamily='sans-serif'
+                  <text y='44' textAnchor='middle' fontSize='12' fontFamily='sans-serif'
                     fontWeight='600' fill='currentColor' opacity='0.6'>{n.label}</text>
                 </g>
               )
