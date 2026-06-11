@@ -384,16 +384,16 @@ export function HeroTerminalDemo(props: HeroTerminalDemoProps) {
 
             {/* ── CN Relay hub ── */}
             <g transform={`translate(${HUB_CN.x},${HUB_CN.y})`}>
-              <circle r='50' fill='url(#hubGlow)' />
-              <circle r='42' fill='none' stroke='rgb(210,210,210)' strokeWidth='1.2' opacity='0'
+              <circle r='100' fill='url(#hubGlow)' />
+              <circle r='84' fill='none' stroke='rgb(210,210,210)' strokeWidth='1.2' opacity='0'
                 style={{ animation: 'hub-pulse 1.8s ease-out infinite' }} />
-              <circle r='42' fill='none' stroke='rgb(210,210,210)' strokeWidth='1.2' opacity='0'
+              <circle r='84' fill='none' stroke='rgb(210,210,210)' strokeWidth='1.2' opacity='0'
                 style={{ animation: 'hub-pulse 1.8s ease-out infinite', animationDelay: '0.9s' }} />
-              <circle r='28' fill='rgb(210,210,210)' opacity='0.18' />
-              <circle r='22' fill='rgb(220,220,220)' />
-              <image x={-15} y={-15} width={30} height={30} href={logo || ''} />
-              <text y='34' textAnchor='middle' fontSize='8.5' fontFamily='sans-serif'
-                fontWeight='600' fill='currentColor' opacity='0.7'>CN Relay</text>
+              <circle r='56' fill='rgb(210,210,210)' opacity='0.18' />
+              <circle r='44' fill='rgb(220,220,220)' />
+              <image x={-30} y={-30} width={60} height={60} href={logo || ''} />
+              <text y='68' textAnchor='middle' fontSize='17' fontFamily='sans-serif'
+                fontWeight='600' fill='red' opacity='0.9'>CN Relay</text>
             </g>
 
             {/* ── Global relay nodes (scattered network) ── */}
@@ -414,8 +414,8 @@ export function HeroTerminalDemo(props: HeroTerminalDemoProps) {
 
           <style>{`
             @keyframes hub-pulse {
-              0%   { r: 14; opacity: 0.65; }
-              100% { r: 34; opacity: 0; }
+              0%   { r: 28; opacity: 0.65; }
+              100% { r: 68; opacity: 0; }
             }
             @keyframes flow-left {
               0%   { stroke-dashoffset: 0; }
