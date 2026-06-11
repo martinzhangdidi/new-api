@@ -100,6 +100,7 @@ function lerp(
 export function HeroTerminalDemo(props: HeroTerminalDemoProps) {
   const { logo } = useSystemConfig()
   const [packets, setPackets] = useState<Packet[]>([])
+  const packetsRef = useRef<Packet[]>([])
   const rafRef       = useRef<number>(undefined)
   const lastRef      = useRef<number>(0)
   const llmTimer     = useRef<number>(0)
@@ -108,12 +109,14 @@ export function HeroTerminalDemo(props: HeroTerminalDemoProps) {
   const llmBwdTimer  = useRef<number>(0)
   const trunkBwdTimer = useRef<number>(0)
   const meshBwdTimer = useRef<number>(0)
+  const runningRef   = useRef(false)
 
   useEffect(() => {
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
     if (mq.matches) return
 
     function tick(now: number) {
+      if (!runningRef.current) return
       const dt = Math.min((now - lastRef.current) / 1000, 0.05)
       lastRef.current = now
       llmTimer.current      += dt
@@ -123,68 +126,83 @@ export function HeroTerminalDemo(props: HeroTerminalDemoProps) {
       trunkBwdTimer.current += dt
       meshBwdTimer.current  += dt
 
-      setPackets((prev) => {
-        const next = prev
-          .map((p) => ({ ...p, progress: p.progress + p.speed * dt }))
-          .filter((p) => p.progress < 1)
+      const prev = packetsRef.current
+      const next = prev
+        .map((p) => ({ ...p, progress: p.progress + p.speed * dt }))
+        .filter((p) => p.progress < 1)
 
-        // === RESPONSE: LLM → CN Relay → Global nodes (bwd) ===
-        if (llmBwdTimer.current > 0.2) {
-          llmBwdTimer.current = 0
-          const fromIdx = Math.floor(Math.random() * CHINA_NODES.length)
-          const baseSpeed = 1.2 + Math.random() * 0.4
-          for (let t = 0; t < 3; t++) {
-            next.push({ id: ++_pid, seg: 'llm', dir: 'bwd', fromIdx, toIdx: 0, progress: t * 0.06, speed: baseSpeed - t * 0.12, lane: 0 })
-          }
+      // === RESPONSE: LLM → CN Relay → Global nodes (bwd) ===
+      if (llmBwdTimer.current > 0.2) {
+        llmBwdTimer.current = 0
+        const fromIdx = Math.floor(Math.random() * CHINA_NODES.length)
+        const baseSpeed = 1.2 + Math.random() * 0.4
+        for (let t = 0; t < 3; t++) {
+          next.push({ id: ++_pid, seg: 'llm', dir: 'bwd', fromIdx, toIdx: 0, progress: t * 0.06, speed: baseSpeed - t * 0.12, lane: 0 })
         }
-        // bwd trunk: CN hub → global node
-        if (trunkBwdTimer.current > 0.12) {
-          trunkBwdTimer.current = 0
-          const toIdx = Math.floor(Math.random() * GLOBAL_NODES.length)
-          next.push({ id: ++_pid, seg: 'trunk', dir: 'bwd', fromIdx: 0, toIdx, progress: Math.random() * 0.08, speed: 0.9 + Math.random() * 0.5, lane: 0 })
-        }
-        // bwd mesh: between global nodes
-        if (meshBwdTimer.current > 0.25) {
-          meshBwdTimer.current = 0
-          const edgeIdx = Math.floor(Math.random() * MESH_EDGES.length)
-          const [a, b] = MESH_EDGES[edgeIdx]
-          next.push({ id: ++_pid, seg: 'mesh', dir: 'bwd', fromIdx: a, toIdx: b, progress: 0, speed: 1.0 + Math.random() * 0.6, lane: 0 })
-        }
+      }
+      // bwd trunk: CN hub → global node
+      if (trunkBwdTimer.current > 0.12) {
+        trunkBwdTimer.current = 0
+        const toIdx = Math.floor(Math.random() * GLOBAL_NODES.length)
+        next.push({ id: ++_pid, seg: 'trunk', dir: 'bwd', fromIdx: 0, toIdx, progress: Math.random() * 0.08, speed: 0.9 + Math.random() * 0.5, lane: 0 })
+      }
+      // bwd mesh: between global nodes
+      if (meshBwdTimer.current > 0.25) {
+        meshBwdTimer.current = 0
+        const edgeIdx = Math.floor(Math.random() * MESH_EDGES.length)
+        const [a, b] = MESH_EDGES[edgeIdx]
+        next.push({ id: ++_pid, seg: 'mesh', dir: 'bwd', fromIdx: a, toIdx: b, progress: 0, speed: 1.0 + Math.random() * 0.6, lane: 0 })
+      }
 
-        // === REQUEST: Global nodes → CN Relay → LLM (fwd) ===
-        // fwd trunk: global node → CN hub
-        if (trunkTimer.current > 0.15) {
-          trunkTimer.current = 0
-          const fromIdx = Math.floor(Math.random() * GLOBAL_NODES.length)
-          next.push({ id: ++_pid, seg: 'trunk', dir: 'fwd', fromIdx, toIdx: 0, progress: Math.random() * 0.08, speed: 0.9 + Math.random() * 0.5, lane: 0 })
+      // === REQUEST: Global nodes → CN Relay → LLM (fwd) ===
+      // fwd trunk: global node → CN hub
+      if (trunkTimer.current > 0.15) {
+        trunkTimer.current = 0
+        const fromIdx = Math.floor(Math.random() * GLOBAL_NODES.length)
+        next.push({ id: ++_pid, seg: 'trunk', dir: 'fwd', fromIdx, toIdx: 0, progress: Math.random() * 0.08, speed: 0.9 + Math.random() * 0.5, lane: 0 })
+      }
+      // fwd mesh: between global nodes
+      if (meshTimer.current > 0.3) {
+        meshTimer.current = 0
+        const edgeIdx = Math.floor(Math.random() * MESH_EDGES.length)
+        const [a, b] = MESH_EDGES[edgeIdx]
+        next.push({ id: ++_pid, seg: 'mesh', dir: 'fwd', fromIdx: b, toIdx: a, progress: 0, speed: 1.0 + Math.random() * 0.6, lane: 0 })
+      }
+      // fwd llm: CN hub → llm node
+      if (llmTimer.current > 0.22) {
+        llmTimer.current = 0
+        const fromIdx = Math.floor(Math.random() * CHINA_NODES.length)
+        const baseSpeed = 1.1 + Math.random() * 0.5
+        for (let t = 0; t < 3; t++) {
+          next.push({ id: ++_pid, seg: 'llm', dir: 'fwd', fromIdx, toIdx: 0, progress: t * 0.06, speed: baseSpeed - t * 0.12, lane: 0 })
         }
-        // fwd mesh: between global nodes
-        if (meshTimer.current > 0.3) {
-          meshTimer.current = 0
-          const edgeIdx = Math.floor(Math.random() * MESH_EDGES.length)
-          const [a, b] = MESH_EDGES[edgeIdx]
-          next.push({ id: ++_pid, seg: 'mesh', dir: 'fwd', fromIdx: b, toIdx: a, progress: 0, speed: 1.0 + Math.random() * 0.6, lane: 0 })
-        }
-        // fwd llm: CN hub → llm node
-        if (llmTimer.current > 0.22) {
-          llmTimer.current = 0
-          const fromIdx = Math.floor(Math.random() * CHINA_NODES.length)
-          const baseSpeed = 1.1 + Math.random() * 0.5
-          for (let t = 0; t < 3; t++) {
-            next.push({ id: ++_pid, seg: 'llm', dir: 'fwd', fromIdx, toIdx: 0, progress: t * 0.06, speed: baseSpeed - t * 0.12, lane: 0 })
-          }
-        }
+      }
 
-        return next
-      })
+      packetsRef.current = next
+      setPackets(next)
 
-      rafRef.current = requestAnimationFrame(tick)
+      if (runningRef.current) {
+        rafRef.current = requestAnimationFrame(tick)
+      }
     }
 
+    runningRef.current = true
     lastRef.current = performance.now()
+    llmTimer.current = 0
+    trunkTimer.current = 0
+    meshTimer.current = 0
+    llmBwdTimer.current = 0
+    trunkBwdTimer.current = 0
+    meshBwdTimer.current = 0
+    packetsRef.current = []
+    setPackets([])
     rafRef.current = requestAnimationFrame(tick)
     return () => {
-      if (rafRef.current !== undefined) cancelAnimationFrame(rafRef.current)
+      runningRef.current = false
+      if (rafRef.current !== undefined) {
+        cancelAnimationFrame(rafRef.current)
+        rafRef.current = undefined
+      }
     }
   }, [])
 
