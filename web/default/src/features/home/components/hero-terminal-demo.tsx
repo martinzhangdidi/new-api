@@ -178,6 +178,12 @@ export function HeroTerminalDemo(props: HeroTerminalDemoProps) {
         }
       }
 
+      // 限制最大 packet 数量，避免性能无限下降
+      const MAX_PACKETS = 30
+      if (next.length > MAX_PACKETS) {
+        next.splice(0, next.length - MAX_PACKETS)
+      }
+
       packetsRef.current = next
       setPackets(next)
 
@@ -346,7 +352,7 @@ export function HeroTerminalDemo(props: HeroTerminalDemoProps) {
               const pt = lerp(from, to, p.progress)
               const tail = lerp(from, to, Math.max(0, p.progress - 0.12))
               return (
-                <g key={p.id}>
+                <g key={p.id} style={{ willChange: 'transform' }}>
                   <line x1={tail.x} y1={tail.y} x2={pt.x} y2={pt.y}
                     stroke={color} strokeWidth='2' strokeLinecap='round'
                     opacity={0.3 + p.progress * 0.4} />
