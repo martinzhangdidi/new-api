@@ -22,6 +22,7 @@ import QwenIcon from '@lobehub/icons/es/Qwen'
 import ZhipuIcon from '@lobehub/icons/es/Zhipu'
 import MinimaxIcon from '@lobehub/icons/es/Minimax'
 import { cn } from '@/lib/utils'
+import { useSystemConfig } from '@/hooks/use-system-config'
 
 interface HeroTerminalDemoProps {
   className?: string
@@ -97,6 +98,7 @@ function lerp(
 }
 
 export function HeroTerminalDemo(props: HeroTerminalDemoProps) {
+  const { logo } = useSystemConfig()
   const [packets, setPackets] = useState<Packet[]>([])
   const rafRef       = useRef<number>(undefined)
   const lastRef      = useRef<number>(0)
@@ -209,7 +211,7 @@ export function HeroTerminalDemo(props: HeroTerminalDemoProps) {
           <span className='size-2.5 rounded-full bg-amber-400/80' />
           <span className='size-2.5 rounded-full bg-emerald-400/80' />
           <span className='text-foreground/40 ml-3 font-mono text-[11px] tracking-widest uppercase'>
-            tenkb network · Transcontinental
+            <span style={{ color: '#000000' }}>ten</span><span style={{ color: '#FF3333' }}>kb</span> network · Transcontinental
           </span>
           <div className='ml-auto flex items-center gap-1.5'>
             <span className='inline-block size-1.5 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.6)]' />
@@ -229,28 +231,28 @@ export function HeroTerminalDemo(props: HeroTerminalDemoProps) {
           >
             <defs>
               <radialGradient id='hubGlow'>
-                <stop offset='0%' stopColor='rgb(239,68,68)' stopOpacity='0.4' />
-                <stop offset='60%' stopColor='rgb(239,68,68)' stopOpacity='0.08' />
-                <stop offset='100%' stopColor='rgb(239,68,68)' stopOpacity='0' />
+                <stop offset='0%' stopColor='rgb(255,20,20)' stopOpacity='0.5' />
+                <stop offset='60%' stopColor='rgb(255,20,20)' stopOpacity='0.12' />
+                <stop offset='100%' stopColor='rgb(255,20,20)' stopOpacity='0' />
               </radialGradient>
               <radialGradient id='earthGlow' cx='50%' cy='50%' r='50%'>
-                <stop offset='0%' stopColor='currentColor' stopOpacity='0.04' />
-                <stop offset='70%' stopColor='currentColor' stopOpacity='0.02' />
+                <stop offset='0%' stopColor='currentColor' stopOpacity='0.08' />
+                <stop offset='70%' stopColor='currentColor' stopOpacity='0.04' />
                 <stop offset='100%' stopColor='currentColor' stopOpacity='0' />
               </radialGradient>
             </defs>
 
             {/* ── Globe background (replaces rect) ── */}
             <g transform={`translate(${W / 2},${H / 2})`}>
-              <circle r='145' fill='url(#earthGlow)' />
-              <circle r='140' fill='none' stroke='currentColor' strokeWidth='0.6' opacity='0.08' />
-              <circle r='100' fill='none' stroke='currentColor' strokeWidth='0.4' opacity='0.06' />
-              <ellipse rx='140' ry='50' fill='none' stroke='currentColor' strokeWidth='0.4' opacity='0.06' />
-              <ellipse rx='140' ry='90' fill='none' stroke='currentColor' strokeWidth='0.3' opacity='0.05' />
-              <ellipse rx='50' ry='140' fill='none' stroke='currentColor' strokeWidth='0.4' opacity='0.06' />
-              <ellipse rx='90' ry='140' fill='none' stroke='currentColor' strokeWidth='0.3' opacity='0.05' />
-              <line x1='-140' y1='0' x2='140' y2='0' stroke='currentColor' strokeWidth='0.3' opacity='0.05' />
-              <line x1='0' y1='-140' x2='0' y2='140' stroke='currentColor' strokeWidth='0.3' opacity='0.05' />
+              <circle r='155' fill='url(#earthGlow)' />
+              <circle r='150' fill='none' stroke='currentColor' strokeWidth='0.6' opacity='0.15' />
+              <circle r='110' fill='none' stroke='currentColor' strokeWidth='0.4' opacity='0.12' />
+              <ellipse rx='150' ry='55' fill='none' stroke='currentColor' strokeWidth='0.4' opacity='0.12' />
+              <ellipse rx='150' ry='95' fill='none' stroke='currentColor' strokeWidth='0.3' opacity='0.10' />
+              <ellipse rx='55' ry='150' fill='none' stroke='currentColor' strokeWidth='0.4' opacity='0.12' />
+              <ellipse rx='95' ry='150' fill='none' stroke='currentColor' strokeWidth='0.3' opacity='0.10' />
+              <line x1='-150' y1='0' x2='150' y2='0' stroke='currentColor' strokeWidth='0.3' opacity='0.10' />
+              <line x1='0' y1='-150' x2='0' y2='150' stroke='currentColor' strokeWidth='0.3' opacity='0.10' />
             </g>
 
             {/* Region labels */}
@@ -358,15 +360,14 @@ export function HeroTerminalDemo(props: HeroTerminalDemoProps) {
 
             {/* ── CN Relay hub ── */}
             <g transform={`translate(${HUB_CN.x},${HUB_CN.y})`}>
-              <circle r='40' fill='url(#hubGlow)' />
-              <circle r='34' fill='none' stroke='rgb(239,68,68)' strokeWidth='1.2' opacity='0'
+              <circle r='50' fill='url(#hubGlow)' />
+              <circle r='42' fill='none' stroke='rgb(210,210,210)' strokeWidth='1.2' opacity='0'
                 style={{ animation: 'hub-pulse 1.8s ease-out infinite' }} />
-              <circle r='34' fill='none' stroke='rgb(239,68,68)' strokeWidth='1.2' opacity='0'
+              <circle r='42' fill='none' stroke='rgb(210,210,210)' strokeWidth='1.2' opacity='0'
                 style={{ animation: 'hub-pulse 1.8s ease-out infinite', animationDelay: '0.9s' }} />
-              <circle r='22' fill='rgb(239,68,68)' opacity='0.18' />
-              <circle r='16' fill='rgb(220,38,38)' />
-              <text y='5' textAnchor='middle' fontSize='9' fontFamily='monospace'
-                fontWeight='700' fill='white' letterSpacing='0.5'>tenkb</text>
+              <circle r='28' fill='rgb(210,210,210)' opacity='0.18' />
+              <circle r='22' fill='rgb(220,220,220)' />
+              <image x={-15} y={-15} width={30} height={30} href={logo || ''} />
               <text y='34' textAnchor='middle' fontSize='8.5' fontFamily='sans-serif'
                 fontWeight='600' fill='currentColor' opacity='0.7'>CN Relay</text>
             </g>
@@ -461,7 +462,7 @@ export function HeroTerminalDemo(props: HeroTerminalDemoProps) {
             </span>
           ))}
           <span className='text-foreground/30 ml-auto font-mono text-[10px] tracking-wider uppercase'>
-            tenkb network
+            <span style={{ color: '#000000' }}>ten</span><span style={{ color: '#FF3333' }}>kb</span> network
           </span>
         </div>
       </div>

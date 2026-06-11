@@ -18,6 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { Settings, Zap, BarChart3 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { renderBrandInText } from '@/components/brand-name'
 import { AnimateInView } from '@/components/animate-in-view'
 
 export function HowItWorks() {
@@ -76,9 +77,9 @@ export function HowItWorks() {
                   {step.num}
                 </div>
               </div>
-              <h3 className='mb-2 text-base font-semibold'>{step.title}</h3>
+              <h3 className='mb-2 text-base font-semibold'>{renderBrandInText(step.title)}</h3>
               <p className='text-muted-foreground max-w-[240px] text-sm leading-relaxed'>
-                {step.desc}
+                {renderBrandInText(step.desc)}
               </p>
             </AnimateInView>
           ))}

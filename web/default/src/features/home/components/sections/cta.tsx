@@ -19,6 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 import { Link } from '@tanstack/react-router'
 import { ArrowRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { renderBrandInText } from '@/components/brand-name'
 import { Button } from '@/components/ui/button'
 import { AnimateInView } from '@/components/animate-in-view'
 
@@ -42,8 +43,8 @@ export function CTA(props: CTAProps) {
         className='absolute inset-0 -z-10 opacity-20 dark:opacity-[0.08]'
         style={{
           background: [
-            'radial-gradient(ellipse 50% 50% at 30% 50%, oklch(0.7 0.15 250 / 70%) 0%, transparent 70%)',
-            'radial-gradient(ellipse 40% 40% at 70% 40%, oklch(0.65 0.12 200 / 50%) 0%, transparent 70%)',
+            'radial-gradient(ellipse 50% 50% at 30% 50%, oklch(0.7 0 0 / 40%) 0%, transparent 70%)',
+            'radial-gradient(ellipse 40% 40% at 70% 40%, oklch(0.65 0 0 / 30%) 0%, transparent 70%)',
           ].join(', '),
         }}
       />
@@ -60,8 +61,10 @@ export function CTA(props: CTAProps) {
           </span>
         </h2>
         <p className='text-muted-foreground/80 mx-auto mt-5 max-w-md text-sm leading-relaxed md:text-base'>
-          {t(
-            'Stop fighting packet loss. Deploy your own tenkb Architecture gateway and start routing AI requests through China\'s most cost-efficient compute clusters in minutes.'
+          {renderBrandInText(
+            t(
+              'Stop fighting packet loss. Deploy your own tenkb Architecture gateway and start routing AI requests through China\'s most cost-efficient compute clusters in minutes.'
+            )
           )}
         </p>
         <div className='mt-8 flex items-center justify-center gap-3'>

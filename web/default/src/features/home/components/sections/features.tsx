@@ -27,6 +27,7 @@ import {
   HeartHandshake,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { renderBrandInText } from '@/components/brand-name'
 import { AnimateInView } from '@/components/animate-in-view'
 
 interface FeaturesProps {
@@ -214,10 +215,10 @@ export function Features(_props: FeaturesProps) {
                 <span className='border-border/40 bg-muted text-muted-foreground flex size-7 items-center justify-center rounded-md border text-[10px] font-semibold tabular-nums'>
                   {f.num}
                 </span>
-                <h3 className='text-sm font-semibold'>{f.title}</h3>
+                <h3 className='text-sm font-semibold'>{renderBrandInText(f.title)}</h3>
               </div>
               <p className='text-muted-foreground text-sm leading-relaxed'>
-                {f.desc}
+                {renderBrandInText(f.desc)}
               </p>
               {f.visual}
             </AnimateInView>

@@ -20,6 +20,7 @@ import { Link } from '@tanstack/react-router'
 import { CherryStudio } from '@lobehub/icons'
 import { ArrowRight, BookOpen } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { renderBrandInText } from '@/components/brand-name'
 import { useStatus } from '@/hooks/use-status'
 import { Button } from '@/components/ui/button'
 import { HeroTerminalDemo } from '../hero-terminal-demo'
@@ -85,9 +86,9 @@ export function Hero(props: HeroProps) {
         className='pointer-events-none absolute inset-0 -z-10 opacity-25 dark:opacity-[0.12]'
         style={{
           background: [
-            'radial-gradient(ellipse 60% 50% at 20% 20%, oklch(0.72 0.18 250 / 80%) 0%, transparent 70%)',
-            'radial-gradient(ellipse 50% 40% at 80% 15%, oklch(0.65 0.15 200 / 60%) 0%, transparent 70%)',
-            'radial-gradient(ellipse 40% 35% at 40% 80%, oklch(0.70 0.12 280 / 40%) 0%, transparent 70%)',
+            'radial-gradient(ellipse 60% 50% at 20% 20%, oklch(0.72 0 0 / 50%) 0%, transparent 70%)',
+            'radial-gradient(ellipse 50% 40% at 80% 15%, oklch(0.65 0 0 / 40%) 0%, transparent 70%)',
+            'radial-gradient(ellipse 40% 35% at 40% 80%, oklch(0.70 0 0 / 30%) 0%, transparent 70%)',
           ].join(', '),
         }}
       />
@@ -102,28 +103,30 @@ export function Hero(props: HeroProps) {
         <div className='flex flex-col items-start text-left lg:col-span-6'>
           {/* Top Pill Badge */}
           <div
-            className='landing-animate-fade-up mb-5 inline-flex items-center gap-1.5 rounded-full border border-blue-500/20 bg-blue-500/5 px-3 py-1.5 text-[11px] font-medium text-blue-600 opacity-0 shadow-xs dark:border-blue-400/20 dark:bg-blue-400/5 dark:text-blue-400'
+            className='landing-animate-fade-up mb-5 inline-flex items-center gap-1.5 rounded-full border border-muted-foreground/20 bg-muted-foreground/5 px-3 py-1.5 text-[11px] font-medium text-muted-foreground opacity-0 shadow-xs dark:border-muted-foreground/20 dark:bg-muted-foreground/5 dark:text-muted-foreground/80'
             style={{ animationDelay: '0ms' }}
           >
             <span className='relative flex size-1.5'>
-              <span className='absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-400 opacity-75' />
-              <span className='relative inline-flex size-1.5 rounded-full bg-blue-500 dark:bg-blue-400' />
+              <span className='absolute inline-flex h-full w-full animate-ping rounded-full bg-muted-foreground/60 opacity-75' />
+              <span className='relative inline-flex size-1.5 rounded-full bg-muted-foreground dark:bg-muted-foreground/80' />
             </span>
-            <span>{t('AI Gateway · tenkb Architecture')}</span>
+            <span>{renderBrandInText(t('AI Gateway · tenkb Architecture'))}</span>
           </div>
 
           <h1
             className='landing-animate-fade-up text-[clamp(2.25rem,4.5vw,3.25rem)] leading-[1.15] font-bold tracking-tight'
             style={{ animationDelay: '60ms' }}
           >
-            {t("One pipeline to the world's fastest-growing AI infrastructure.")}
+            {t("One pipeline to the world's most cost efficient AI infrastructure.")}
           </h1>
           <p
             className='landing-animate-fade-up text-muted-foreground/80 mt-5 max-w-xl text-base leading-relaxed opacity-0 md:text-[15px]'
             style={{ animationDelay: '120ms' }}
           >
-            {t(
-              'Affordable, stable, and fast. tenkb solves transcontinental packet loss with a Go-runtime QUIC/UDP engine, BBR3 congestion control, and zero-knowledge data flow.'
+            {renderBrandInText(
+              t(
+                'Affordable, stable, and fast. tenkb solves transcontinental packet loss with a Go-runtime QUIC/UDP engine, BBR3 congestion control, and zero-knowledge data flow.'
+              )
             )}
           </p>
 

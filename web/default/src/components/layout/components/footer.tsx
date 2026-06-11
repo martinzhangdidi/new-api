@@ -19,6 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 import { Fragment, useMemo } from 'react'
 import { Link } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
+import { renderBrandInText } from '@/components/brand-name'
 import { cn } from '@/lib/utils'
 import { useStatus } from '@/hooks/use-status'
 import { useSystemConfig } from '@/hooks/use-system-config'
@@ -260,7 +261,7 @@ export function Footer(props: FooterProps) {
                 className='size-12 rounded-lg object-contain'
               />
               <span className='text-lg font-semibold tracking-tight'>
-                {displayName}
+                {renderBrandInText(displayName)}
               </span>
             </Link>
             <p className='text-muted-foreground/60 mt-3 max-w-[280px] text-sm leading-relaxed'>
