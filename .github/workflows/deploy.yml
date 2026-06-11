@@ -42,7 +42,7 @@ jobs:
           elif [ "${{ github.ref_type }}" = "tag" ]; then
             echo "IMAGE_TAG=${{ github.ref_name }}" >> $GITHUB_OUTPUT
           else
-            echo "IMAGE_TAG=latest" >> $GITHUB_OUTPUT
+            echo "IMAGE_TAG=$(echo ${{ github.sha }} | cut -c1-8)" >> $GITHUB_OUTPUT
           fi
 
       - name: Build and push
@@ -83,7 +83,7 @@ jobs:
           elif [ "${{ github.ref_type }}" = "tag" ]; then
             echo "IMAGE_TAG=${{ github.ref_name }}" >> $GITHUB_OUTPUT
           else
-            echo "IMAGE_TAG=latest" >> $GITHUB_OUTPUT
+            echo "IMAGE_TAG=$(echo ${{ github.sha }} | cut -c1-8)" >> $GITHUB_OUTPUT
           fi
 
       - name: Setup Nomad CLI
