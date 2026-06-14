@@ -71,3 +71,13 @@ make -f tenkb/Makefile test-local
 - 改 Go 后端代码 → 需要 docker compose up -d --build 重建
 - 发布生产 → 打 tag 推送到 GitHub，不要本地 build-push
 - start-dev 会删除本地 node_modules，前端独立开发时需要重新 bun install
+
+
+## 测试本机
+
+cd ~/tenkb/testspeed
+
+export NEWAPI_TOKEN="sk-gcTLZVTC7hytHgn7WIir54gtiH0kbsOjwUYIVToXq9W3S3nH"
+export DEEPSEEK_TOKEN="sk-4208a89f75ac460c8707b3ecccf89219"
+
+python3 test_remote.py
