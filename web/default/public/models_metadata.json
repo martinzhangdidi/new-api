@@ -1,0 +1,44 @@
+{
+  "deepseek-v4-flash": {
+    "context_length": 1000000,
+    "max_output_tokens": 384000,
+    "knowledge_cutoff": "2025-05",
+    "release_date": "2026-04-24",
+    "parameter_count": "284B total / 13B active",
+    "input_modalities": [
+      "text"
+    ],
+    "output_modalities": [
+      "text"
+    ],
+    "capabilities": [
+      "streaming",
+      "system_prompt",
+      "reasoning",
+      "tools",
+      "structured_output"
+    ],
+    "description": "DeepSeek V4 Flash is an efficiency-optimized Mixture-of-Experts model from DeepSeek with 284B total parameters and 13B activated parameters, supporting a 1M-token context window. It is designed for fast inference and high-throughput workloads, while maintaining strong reasoning and coding performance.\n\nThe model includes hybrid attention for efficient long-context processing. Reasoning efforts `high` and `xhigh` are supported; `xhigh` maps to max reasoning. It is well suited for applications such as coding assistants, chat systems, and agent workflows where responsiveness and cost efficiency are important."
+  },
+  "deepseek-v4-pro": {
+    "context_length": 1000000,
+    "max_output_tokens": 384000,
+    "knowledge_cutoff": "2025-05",
+    "release_date": "2026-04-24",
+    "parameter_count": "861.6B",
+    "input_modalities": [
+      "text"
+    ],
+    "output_modalities": [
+      "text"
+    ],
+    "capabilities": [
+      "streaming",
+      "system_prompt",
+      "reasoning",
+      "tools",
+      "structured_output"
+    ],
+    "description": "DeepSeek V4 Pro is a large-scale Mixture-of-Experts model from DeepSeek with 1.6T total parameters and 49B activated parameters, supporting a 1M-token context window. It is designed for advanced reasoning, coding, and long-horizon agent workflows, with strong performance across knowledge, math, and software engineering benchmarks.\n\nBuilt on the same architecture as DeepSeek V4 Flash, it introduces a hybrid attention system for efficient long-context processing. Reasoning efforts `high` and `xhigh` are supported; `xhigh` maps to max reasoning. It is well suited for complex workloads such as full-codebase analysis, multi-step automation, and large-scale information synthesis, where both capability and efficiency are critical."
+  }
+}

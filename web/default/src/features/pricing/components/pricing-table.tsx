@@ -17,6 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useState, useCallback } from 'react'
+import { useNavigate, useSearch } from '@tanstack/react-router'
 import {
   flexRender,
   getCoreRowModel,
@@ -84,11 +85,18 @@ export function PricingTable(props: PricingTableProps) {
     manualPagination: false,
   })
 
+  const navigate = useNavigate()
+  const search = useSearch({ strict: false })
+
   const handleRowClick = useCallback(
     (model: PricingModel) => {
-      onModelClick?.(model.model_name)
+      navigate({
+        to: '/pricing/$modelId',
+        params: { modelId: model.model_name },
+        search: (prev) => ({ ...prev, ...search }),
+      })
     },
-    [onModelClick]
+    [navigate, search]
   )
 
   return (

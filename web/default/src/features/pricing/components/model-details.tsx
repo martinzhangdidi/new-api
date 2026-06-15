@@ -1095,8 +1095,12 @@ export function ModelDetails() {
     )
   }
 
+  const metaDescription = model.description || `${model.model_name} model details, pricing, context window, parameters, and capabilities.`
+
   return (
     <PublicLayout>
+      <title>{`${model.model_name} - Model Details & Pricing - QuantumNous`}</title>
+      <meta name="description" content={metaDescription} />
       <div className='mx-auto max-w-5xl px-4 sm:px-6'>
         <Button
           variant='ghost'

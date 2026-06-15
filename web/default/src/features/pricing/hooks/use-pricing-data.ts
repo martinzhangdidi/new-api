@@ -30,6 +30,22 @@ export function usePricingData() {
     staleTime: 5 * 60 * 1000,
   })
 
+  const { data: customMetadata } = useQuery<Record<string, any>>({
+    queryKey: ['customMetadata'],
+    queryFn: async () => {
+      try {
+        const res = await fetch('/models_metadata.json')
+        if (res.ok) {
+          return await res.json()
+        }
+      } catch (e) {
+        console.error('Failed to load custom model metadata:', e)
+      }
+      return {}
+    },
+    staleTime: 5 * 60 * 1000,
+  })
+
   // Ensure rates never reach zero to prevent division errors
   const priceRate = useMemo(
     () => Math.max((status?.price as number) ?? 1, 0.001),
@@ -49,6 +65,7 @@ export function usePricingData() {
       const vendor = model.vendor_id
         ? vendorMap.get(model.vendor_id)
         : undefined
+      const custom = customMetadata?.[model.model_name] || {}
       return {
         ...model,
         key: model.model_name,
@@ -56,9 +73,18 @@ export function usePricingData() {
         vendor_icon: vendor?.icon,
         vendor_description: vendor?.description,
         group_ratio: data.group_ratio,
+        context_length: custom.context_length ?? model.context_length,
+        max_output_tokens: custom.max_output_tokens ?? model.max_output_tokens,
+        knowledge_cutoff: custom.knowledge_cutoff ?? model.knowledge_cutoff,
+        release_date: custom.release_date ?? model.release_date,
+        parameter_count: custom.parameter_count ?? model.parameter_count,
+        input_modalities: custom.input_modalities ?? model.input_modalities,
+        output_modalities: custom.output_modalities ?? model.output_modalities,
+        capabilities: custom.capabilities ?? model.capabilities,
+        description: custom.description ?? model.description,
       }
     })
-  }, [data])
+  }, [data, customMetadata])
 
   return {
     models,
