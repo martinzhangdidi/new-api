@@ -53,7 +53,7 @@ export function useSidebarData(): SidebarData {
         items: [
           {
             title: t('Playground'),
-            url: '/playground',
+            url: '/playground-next',
             icon: FlaskConical,
           },
           {
