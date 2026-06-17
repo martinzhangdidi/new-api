@@ -19,6 +19,9 @@ For commercial licensing, please contact support@quantumnous.com
 import { memo } from 'react'
 import { StickToBottom } from 'use-stick-to-bottom'
 import type { ExtendedMessage } from '../../ai-sdk/types'
+import type { PricingModel, TokenUnit } from '@/features/pricing/types'
+import type { ModelPerfBadgeData } from '@/features/pricing/components/model-perf-badge'
+import { ModelCard } from '@/features/pricing/components/model-card'
 import { ChatMessage } from './chat-message'
 
 interface ChatThreadProps {
@@ -27,18 +30,37 @@ interface ChatThreadProps {
   onRegenerate: (messageId: string) => void
   onEdit: (messageId: string, newContent: string) => void
   onDelete: (messageId: string) => void
+  model?: PricingModel
+  priceRate?: number
+  usdExchangeRate?: number
+  tokenUnit?: TokenUnit
+  perf?: ModelPerfBadgeData
 }
 
+
 export const ChatThread = memo(function ChatThread(props: ChatThreadProps) {
-  const { messages, isGenerating, onRegenerate, onEdit, onDelete } = props
+  const { messages, isGenerating, onRegenerate, onEdit, onDelete, model, priceRate, usdExchangeRate, tokenUnit, perf } = props
 
   return (
     <StickToBottom className="flex-1 overflow-hidden" initial="smooth" resize="smooth">
       <StickToBottom.Content className="p-4">
         <div className="max-w-3xl mx-auto space-y-4">
           {messages.length === 0 ? (
-            <div className="text-center text-muted-foreground py-12">
-              Start a conversation...
+            <div className="space-y-4 py-8">
+              {model && (
+                <ModelCard
+                  model={model}
+                  onClick={() => {}}
+                  priceRate={priceRate}
+                  usdExchangeRate={usdExchangeRate}
+                  tokenUnit={tokenUnit}
+                  showRechargePrice={false}
+                  perf={perf}
+                />
+              )}
+              <div className="text-center text-muted-foreground text-sm">
+                Start a conversation...
+              </div>
             </div>
           ) : (
             messages.map((message, index) => (

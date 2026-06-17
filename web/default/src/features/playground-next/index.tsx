@@ -16,11 +16,18 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useSearch } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { getUserModels, getUserGroups } from './api'
+import { getPricing } from '@/features/pricing/api'
+import { getChannels } from '@/features/channels/api'
+import { getPerfMetricsSummary } from '@/features/performance-metrics/api'
+import { parseModelsList, getChannelTypeIcon } from '@/features/channels/lib/channel-utils'
+import { useStatus } from '@/hooks/use-status'
+import type { PricingModel } from '@/features/pricing/types'
+import type { ModelPerfBadgeData } from '@/features/pricing/components/model-perf-badge'
 import { ParametersPanel } from './components/parameters-panel'
 import { ChannelSelector } from './components/channel-selector'
 import { ModelSelector } from './components/model-selector'
@@ -31,12 +38,14 @@ import { getModelCapabilities } from './lib/model-capabilities'
 
 export function PlaygroundNext() {
   const { t } = useTranslation()
+  const { status } = useStatus()
   const search = useSearch({ from: '/_authenticated/playground-next/' })
 
   // Selection state
   const [selectedModel, setSelectedModel] = useState('')
   const [selectedGroup, setSelectedGroup] = useState('')
   const urlModel = (search as { model?: string }).model
+  const urlModelApplied = useRef(false)
 
   // Parameters hook
   const { params, enabled, updateParam, toggleEnabled, buildApiParams } = useParameters()
@@ -52,6 +61,114 @@ export function PlaygroundNext() {
     queryKey: ['playground-next-models'],
     queryFn: getUserModels,
   })
+
+  // Load full pricing data for model preview card
+  const { data: pricingData } = useQuery({
+    queryKey: ['pricing'],
+    queryFn: getPricing,
+    staleTime: 5 * 60 * 1000,
+  })
+
+  // Load custom model metadata
+  const { data: customMetadata } = useQuery<Record<string, any>>({
+    queryKey: ['customMetadata'],
+    queryFn: async () => {
+      try {
+        const res = await fetch('/models_metadata.json')
+        if (res.ok) {
+          return await res.json()
+        }
+      } catch (e) {
+        console.error('Failed to load custom model metadata:', e)
+      }
+      return {}
+    },
+    staleTime: 5 * 60 * 1000,
+  })
+
+  // Load channels for provider count / logos
+  const { data: channelsData } = useQuery({
+    queryKey: ['channels-all'],
+    queryFn: () => getChannels({ page_size: 10000 }),
+    staleTime: 5 * 60 * 1000,
+  })
+
+  const channelMap = useMemo(() => {
+    const items = channelsData?.data?.items ?? []
+    const map = new Map<string, { count: number; iconSet: Set<string> }>()
+    for (const channel of items) {
+      const modelList = parseModelsList(channel.models)
+      const icon = getChannelTypeIcon(channel.type)
+      for (const modelName of modelList) {
+        const entry = map.get(modelName)
+        if (entry) {
+          entry.count += 1
+          entry.iconSet.add(icon)
+        } else {
+          map.set(modelName, { count: 1, iconSet: new Set([icon]) })
+        }
+      }
+    }
+    return map
+  }, [channelsData])
+
+  // Load perf metrics
+  const perfQuery = useQuery({
+    queryKey: ['perf-metrics-summary', 24],
+    queryFn: () => getPerfMetricsSummary(24),
+    staleTime: 60 * 1000,
+    retry: false,
+  })
+
+  const perfMap = useMemo(() => {
+    const map = new Map<string, ModelPerfBadgeData>()
+    for (const model of perfQuery.data?.data?.models ?? []) {
+      map.set(model.model_name, model)
+    }
+    return map
+  }, [perfQuery.data])
+
+  const currentModelFull = useMemo<PricingModel | undefined>(() => {
+    if (!pricingData?.data || !pricingData?.vendors || !selectedModel) return undefined
+    const model = pricingData.data.find((m) => m.model_name === selectedModel)
+    if (!model) return undefined
+
+    const vendorMap = new Map(pricingData.vendors.map((v) => [v.id, v]))
+    const vendor = model.vendor_id ? vendorMap.get(model.vendor_id) : undefined
+    const custom = customMetadata?.[model.model_name] || {}
+    const channelInfo = channelMap.get(model.model_name)
+
+    return {
+      ...model,
+      key: model.model_name,
+      vendor_name: vendor?.name,
+      vendor_icon: vendor?.icon,
+      vendor_description: vendor?.description,
+      group_ratio: pricingData.group_ratio,
+      context_length: custom.context_length ?? model.context_length,
+      max_output_tokens: custom.max_output_tokens ?? model.max_output_tokens,
+      knowledge_cutoff: custom.knowledge_cutoff ?? model.knowledge_cutoff,
+      release_date: custom.release_date ?? model.release_date,
+      parameter_count: custom.parameter_count ?? model.parameter_count,
+      input_modalities: custom.input_modalities ?? model.input_modalities,
+      output_modalities: custom.output_modalities ?? model.output_modalities,
+      capabilities: custom.capabilities ?? model.capabilities,
+      description: custom.description ?? model.description,
+      _channel_count: channelInfo?.count ?? 0,
+      _channel_icons: channelInfo
+        ? Array.from(channelInfo.iconSet)
+        : undefined,
+    }
+  }, [pricingData, customMetadata, channelMap, selectedModel])
+
+  const priceRate = useMemo(
+    () => Math.max((status?.price as number) ?? 1, 0.001),
+    [status?.price]
+  )
+  const usdExchangeRate = useMemo(
+    () => Math.max((status?.usd_exchange_rate as number) ?? priceRate, 0.001),
+    [status?.usd_exchange_rate, priceRate]
+  )
 
   // Load groups
   const { data: groupsData, isLoading: isLoadingGroups } = useQuery({
@@ -131,15 +248,16 @@ export function PlaygroundNext() {
     params: effectiveApiParams,
   })
 
-  // Set defaults — prefer URL model param
+  // Set defaults — prefer URL model param (only on initial load)
   useEffect(() => {
     if (!modelsData?.length) return
-    if (urlModel) {
+    if (urlModel && !urlModelApplied.current) {
       const exists = modelsData.some((m) => m.value === urlModel)
-      if (exists && selectedModel !== urlModel) {
+      if (exists) {
         setSelectedModel(urlModel)
       }
-    } else if (!selectedModel) {
+      urlModelApplied.current = true
+    } else if (!selectedModel && !urlModel) {
       setSelectedModel(modelsData[0].value)
     }
   }, [modelsData, selectedModel, urlModel])
@@ -194,6 +312,10 @@ export function PlaygroundNext() {
           onRegenerate={regenerateMessage}
           onEdit={editMessage}
           onDelete={deleteMessage}
+          model={currentModelFull}
+          priceRate={priceRate}
+          usdExchangeRate={usdExchangeRate}
+          perf={perfMap.get(currentModelFull?.model_name || '')}
         />
         <ChatComposer
           input={input}
