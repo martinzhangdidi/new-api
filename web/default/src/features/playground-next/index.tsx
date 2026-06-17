@@ -26,6 +26,7 @@ import { ModelSelector } from './components/model-selector'
 import { ChatThread } from './components/chat-thread'
 import { ChatComposer } from './components/chat-composer'
 import { useAttachments, useParameters, useCustomChat } from './hooks'
+import { getModelCapabilities } from './lib/model-capabilities'
 
 export function PlaygroundNext() {
   const { t } = useTranslation()
@@ -39,21 +40,6 @@ export function PlaygroundNext() {
 
   // Attachments hook
   const { attachments, addAttachment, removeAttachment, clearAttachments } = useAttachments()
-
-  // Chat hook
-  const {
-    messages,
-    isGenerating,
-    sendMessage,
-    stopGeneration,
-    regenerateMessage,
-    editMessage,
-    deleteMessage,
-  } = useCustomChat({
-    model: selectedModel,
-    group: selectedGroup,
-    params: buildApiParams(),
-  })
 
   // Input state
   const [input, setInput] = useState('')
@@ -74,6 +60,73 @@ export function PlaygroundNext() {
   const currentModelInfo = useMemo(() => {
     return modelsData?.find((m) => m.value === selectedModel)
   }, [modelsData, selectedModel])
+
+  // 当前模型能力
+  const currentModelCaps = useMemo(() => {
+    return getModelCapabilities(
+      selectedModel,
+      currentModelInfo?.supportedEndpointTypes,
+      currentModelInfo?.tags
+    )
+  }, [selectedModel, currentModelInfo])
+
+  // 根据模型能力自动禁用不支持的参数
+  useEffect(() => {
+    if (!selectedModel) return
+    const paramCapabilityMap: Record<string, keyof typeof currentModelCaps> = {
+      temperature: 'supportsTemperature',
+      topP: 'supportsTopP',
+      maxTokens: 'supportsMaxTokens',
+      frequencyPenalty: 'supportsFrequencyPenalty',
+      presencePenalty: 'supportsPresencePenalty',
+      seed: 'supportsSeed',
+    }
+    Object.entries(paramCapabilityMap).forEach(([paramKey, capKey]) => {
+      if (enabled[paramKey as keyof typeof enabled] && !currentModelCaps[capKey]) {
+        toggleEnabled(paramKey as keyof typeof enabled)
+      }
+    })
+  }, [selectedModel, currentModelCaps, enabled, toggleEnabled])
+
+  // 构建 API 参数，按模型能力过滤
+  const effectiveApiParams = useMemo(() => {
+    const apiParams = buildApiParams()
+    const result: typeof apiParams = {}
+    if (currentModelCaps.supportsTemperature && apiParams.temperature !== undefined) {
+      result.temperature = apiParams.temperature
+    }
+    if (currentModelCaps.supportsTopP && apiParams.topP !== undefined) {
+      result.topP = apiParams.topP
+    }
+    if (currentModelCaps.supportsMaxTokens && apiParams.maxTokens !== undefined) {
+      result.maxTokens = apiParams.maxTokens
+    }
+    if (currentModelCaps.supportsFrequencyPenalty && apiParams.frequencyPenalty !== undefined) {
+      result.frequencyPenalty = apiParams.frequencyPenalty
+    }
+    if (currentModelCaps.supportsPresencePenalty && apiParams.presencePenalty !== undefined) {
+      result.presencePenalty = apiParams.presencePenalty
+    }
+    if (currentModelCaps.supportsSeed && apiParams.seed !== undefined) {
+      result.seed = apiParams.seed
+    }
+    return result
+  }, [buildApiParams, currentModelCaps])
+
+  // Chat hook
+  const {
+    messages,
+    isGenerating,
+    sendMessage,
+    stopGeneration,
+    regenerateMessage,
+    editMessage,
+    deleteMessage,
+  } = useCustomChat({
+    model: selectedModel,
+    group: selectedGroup,
+    params: effectiveApiParams,
+  })
 
   // Set defaults
   useEffect(() => {

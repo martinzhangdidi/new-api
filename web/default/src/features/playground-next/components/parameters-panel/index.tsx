@@ -24,7 +24,7 @@ import { Slider } from '@/components/ui/slider'
 import { Input } from '@/components/ui/input'
 import type { ChatParameters, ParameterEnabled } from '../../types'
 import { PARAMETER_RANGES } from '../../constants'
-import { getModelCapabilities, ModelCapabilities } from '../../lib/model-capabilities'
+import { getModelCapabilities, getModelParameterLimits, ModelCapabilities } from '../../lib/model-capabilities'
 
 interface ParametersPanelProps {
   params: ChatParameters
@@ -57,19 +57,35 @@ export function ParametersPanel(props: ParametersPanelProps) {
       capabilities.supportsSeed
   }, [capabilities])
 
+  // 获取模型参数范围限制
+  const paramLimits = useMemo(() => {
+    return getModelParameterLimits(modelId || '', supportedEndpointTypes, tags)
+  }, [modelId, supportedEndpointTypes, tags])
+
   const renderSlider = useCallback(
     (
       key: keyof ChatParameters,
       label: string,
       capabilityKey: keyof ModelCapabilities
     ) => {
-      const range = PARAMETER_RANGES[key]
-      const value = params[key] ?? range.min
+      const baseRange = PARAMETER_RANGES[key] as { min: number; max: number; step: number }
+      const value = params[key] ?? baseRange.min
       const isEnabled = enabled[key]
       const isSupported = capabilities[capabilityKey] as boolean
 
       // 如果不支持此参数，不渲染
       if (!isSupported) return null
+
+      // 使用模型特定的范围限制
+      let min = baseRange.min
+      let max = baseRange.max
+      if (key === 'temperature' && paramLimits.temperature) {
+        min = paramLimits.temperature.min
+        max = paramLimits.temperature.max
+      }
+      if (key === 'maxTokens' && paramLimits.maxTokens) {
+        max = paramLimits.maxTokens.max
+      }
 
       return (
         <div key={key} className={`space-y-2 ${!isEnabled ? 'opacity-50' : ''}`}>
@@ -88,23 +104,23 @@ export function ParametersPanel(props: ParametersPanelProps) {
             </div>
           </div>
           <Slider
-            value={typeof value === 'number' ? value : range.min}
+            value={typeof value === 'number' ? value : min}
             onValueChange={(v) => {
               const num = Array.isArray(v) ? v[0] : v
               if (typeof num === 'number') {
                 onParamChange(key, key === 'seed' ? (Number.isInteger(num) ? num : Math.floor(num)) : num)
               }
             }}
-            min={range.min}
-            max={range.max}
-            step={range.step}
+            min={min}
+            max={max}
+            step={baseRange.step}
             disabled={!isEnabled}
             className="w-full"
           />
         </div>
       )
     },
-    [params, enabled, onParamChange, onToggleEnabled, capabilities]
+    [params, enabled, onParamChange, onToggleEnabled, capabilities, paramLimits]
   )
 
   const renderSeedInput = useCallback(() => {
