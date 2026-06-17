@@ -120,6 +120,7 @@ export function PlaygroundNext() {
           onToggleEnabled={toggleEnabled}
           modelId={selectedModel}
           supportedEndpointTypes={currentModelInfo?.supportedEndpointTypes}
+          tags={currentModelInfo?.tags}
         />
       </div>
 
@@ -144,6 +145,7 @@ export function PlaygroundNext() {
           disabled={!selectedModel}
           modelId={selectedModel}
           supportedEndpointTypes={currentModelInfo?.supportedEndpointTypes}
+          tags={currentModelInfo?.tags}
         />
       </div>
     </div>

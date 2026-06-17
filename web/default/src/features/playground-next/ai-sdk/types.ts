@@ -19,9 +19,19 @@ For commercial licensing, please contact support@quantumnous.com
 import type { UIMessage } from 'ai'
 
 /**
- * Extended UIMessage with reasoning support
+ * 自定义 part 类型，遵循 AI SDK 标准
+ * - text: 文本内容
+ * - file: 统一处理所有文件附件（图片、视频等），通过 mediaType 区分
  */
-export interface ExtendedMessage extends UIMessage {
+export type MessagePart =
+  | { type: 'text'; text: string }
+  | { type: 'file'; data: string; mediaType: string; filename?: string }
+
+/**
+ * Extended UIMessage with reasoning support and custom parts
+ */
+export interface ExtendedMessage extends Omit<UIMessage, 'parts'> {
+  parts?: MessagePart[]
   reasoning?: {
     content: string
     isStreaming: boolean

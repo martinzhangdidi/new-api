@@ -21,7 +21,8 @@ import { useTranslation } from 'react-i18next'
 import { Send, Square, X, Paperclip } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { Attachment } from '../../types'
-import { modelSupports } from '../../lib/model-capabilities'
+import { getModelModalities } from '../../lib/model-capabilities'
+import { ModalityIcons } from '@/features/pricing/components/model-details-modalities'
 import { cn } from '@/lib/utils'
 
 interface ChatComposerProps {
@@ -36,6 +37,7 @@ interface ChatComposerProps {
   disabled?: boolean
   modelId?: string
   supportedEndpointTypes?: string[]
+  tags?: string
 }
 
 export function ChatComposer(props: ChatComposerProps) {
@@ -55,9 +57,11 @@ export function ChatComposer(props: ChatComposerProps) {
     onAddAttachment,
     modelId,
     supportedEndpointTypes,
+    tags,
   } = props
 
-  const supportsVision = modelSupports(modelId || '', 'vision', supportedEndpointTypes)
+  const supportedModalities = getModelModalities(modelId || '', tags, supportedEndpointTypes)
+  const supportsVision = supportedModalities.includes('image')
 
   const handleFileChange = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -108,7 +112,11 @@ export function ChatComposer(props: ChatComposerProps) {
                 className="relative group flex items-center gap-2 px-2 py-1.5 rounded-lg bg-muted border hover:border-primary/50 transition-colors"
               >
                 <div className="w-8 h-8 rounded-md bg-background flex items-center justify-center overflow-hidden">
-                  <img src={att.url} alt="" className="w-full h-full object-cover" />
+                  {att.type === 'image' ? (
+                    <img src={att.url} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <video src={att.url} className="w-full h-full object-cover" muted />
+                  )}
                 </div>
                 <span className="text-xs text-muted-foreground truncate max-w-[100px]">
                   {att.name}
@@ -129,29 +137,36 @@ export function ChatComposer(props: ChatComposerProps) {
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*"
+            accept="image/*,video/*"
             multiple
             onChange={handleFileChange}
             className="hidden"
           />
 
-          {/* Image Upload Button */}
-          <Button
-            onClick={handleImageClick}
-            variant="ghost"
-            size="icon"
-            disabled={!supportsVision || isGenerating}
-            className={cn(
-              "shrink-0 rounded-xl size-9",
-              supportsVision
-                ? "text-muted-foreground hover:text-foreground hover:bg-muted"
-                : "text-muted-foreground/30 cursor-not-allowed"
-            )}
-            aria-label={t('Upload image')}
-            title={supportsVision ? t('Upload image') : t('Current model does not support image input')}
-          >
-            <Paperclip size={18} />
-          </Button>
+          {/* Upload Button + Supported Modalities */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            <Button
+              onClick={handleImageClick}
+              variant="ghost"
+              size="icon"
+              disabled={!supportsVision || isGenerating}
+              className={cn(
+                "rounded-xl size-9",
+                supportsVision
+                  ? "text-muted-foreground hover:text-foreground hover:bg-muted"
+                  : "text-muted-foreground/30 cursor-not-allowed"
+              )}
+              aria-label={t('Upload image')}
+              title={
+                supportsVision
+                  ? t('Upload') + ' (' + supportedModalities.join(', ') + ')'
+                  : t('Current model does not support file upload')
+              }
+            >
+              <Paperclip size={18} />
+            </Button>
+            <ModalityIcons modalities={supportedModalities} className="size-3.5" />
+          </div>
 
           {/* Text Input */}
           <textarea

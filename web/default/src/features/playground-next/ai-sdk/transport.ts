@@ -17,12 +17,12 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { SSE } from 'sse.js'
-import type { UIMessage } from 'ai'
 import { getCommonHeaders } from '@/lib/api'
 import type {
   TransportOptions,
   StreamCallbacks,
   NewApiChatRequest,
+  ExtendedMessage,
 } from './types'
 import { toNewApiMessages, parseStreamChunk } from './adapter'
 
@@ -51,7 +51,7 @@ export class NewApiTransport {
    * Build request body
    */
   private buildRequest(
-    messages: UIMessage[],
+    messages: ExtendedMessage[],
     params: {
       model: string
       group?: string
@@ -82,7 +82,7 @@ export class NewApiTransport {
    * Stream chat completion
    */
   async stream(
-    messages: UIMessage[],
+    messages: ExtendedMessage[],
     params: {
       model: string
       group?: string
@@ -167,7 +167,7 @@ export class NewApiTransport {
    * Non-streaming request
    */
   async request(
-    messages: UIMessage[],
+    messages: ExtendedMessage[],
     params: {
       model: string
       group?: string

@@ -34,15 +34,17 @@ export function useAttachments() {
   }
 
   const addAttachment = useCallback(async (file: File) => {
-    if (!file.type.startsWith('image/')) return
-    if (file.size > 10 * 1024 * 1024) return
+    const isImage = file.type.startsWith('image/')
+    const isVideo = file.type.startsWith('video/')
+    if (!isImage && !isVideo) return
+    if (file.size > 50 * 1024 * 1024) return
 
     setIsProcessing(true)
     try {
       const base64 = await fileToBase64(file)
       setAttachments((prev) => [
         ...prev,
-        { id: nanoid(), type: 'image', url: base64, name: file.name, size: file.size },
+        { id: nanoid(), type: isImage ? 'image' : 'video', url: base64, name: file.name, size: file.size },
       ])
     } catch {
       // Silent fail

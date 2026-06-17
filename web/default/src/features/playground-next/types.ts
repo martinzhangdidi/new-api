@@ -25,6 +25,7 @@ export interface ModelOption {
   label: string
   description?: string
   supportedEndpointTypes?: string[]  // 后端返回的能力列表
+  tags?: string                     // 后端返回的标签（如 vision,reasoning）
 }
 
 /**
@@ -64,7 +65,7 @@ export interface ParameterEnabled {
  */
 export interface Attachment {
   id: string
-  type: 'image'
+  type: 'image' | 'video'
   url: string // base64 or blob URL
   name: string
   size: number

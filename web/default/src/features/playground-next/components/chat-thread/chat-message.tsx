@@ -53,6 +53,11 @@ export function ChatMessage(props: ChatMessageProps) {
     .map((p) => p.text)
     .join('') || ''
 
+  // Get file parts (image/video) from parts using mediaType
+  const fileParts = message.parts
+    ?.filter((p): p is { type: 'file'; data: string; mediaType: string } => p.type === 'file')
+    .map((p) => ({ url: p.data, mediaType: p.mediaType })) || []
+
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(textContent)
@@ -168,6 +173,28 @@ export function ChatMessage(props: ChatMessageProps) {
           )
         ) : (
           <div className={`text-left prose prose-sm dark:prose-invert max-w-none ${isUser ? 'bg-primary/10 rounded-lg px-4 py-2 inline-block' : ''}`}>
+            {/* Display file attachments (image/video) */}
+            {fileParts.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-2">
+                {fileParts.map((part, index) => (
+                  part.mediaType.startsWith('image/') ? (
+                    <img
+                      key={index}
+                      src={part.url}
+                      alt={`Attachment ${index + 1}`}
+                      className="max-w-[200px] max-h-[150px] rounded-md object-cover"
+                    />
+                  ) : (
+                    <video
+                      key={index}
+                      src={part.url}
+                      controls
+                      className="max-w-[300px] max-h-[200px] rounded-md"
+                    />
+                  )
+                ))}
+              </div>
+            )}
             <Markdown remarkPlugins={[remarkGfm]}>
               {textContent}
             </Markdown>

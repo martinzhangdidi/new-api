@@ -34,17 +34,18 @@ interface ParametersPanelProps {
   className?: string
   modelId?: string
   supportedEndpointTypes?: string[]
+  tags?: string
 }
 
 export function ParametersPanel(props: ParametersPanelProps) {
   const { t } = useTranslation()
-  const { params, enabled, onParamChange, onToggleEnabled, className, modelId, supportedEndpointTypes } = props
+  const { params, enabled, onParamChange, onToggleEnabled, className, modelId, supportedEndpointTypes, tags } = props
   const [isExpanded, setIsExpanded] = useState(false)
 
   // 获取模型能力
   const capabilities = useMemo(() => {
-    return getModelCapabilities(modelId || '', supportedEndpointTypes)
-  }, [modelId, supportedEndpointTypes])
+    return getModelCapabilities(modelId || '', supportedEndpointTypes, tags)
+  }, [modelId, supportedEndpointTypes, tags])
 
   // 检查是否有任何可调参数
   const hasConfigurableParams = useMemo(() => {

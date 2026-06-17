@@ -18,12 +18,11 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { memo } from 'react'
 import { StickToBottom } from 'use-stick-to-bottom'
-import type { UIMessage } from 'ai'
 import type { ExtendedMessage } from '../../ai-sdk/types'
 import { ChatMessage } from './chat-message'
 
 interface ChatThreadProps {
-  messages: UIMessage[]
+  messages: ExtendedMessage[]
   isGenerating: boolean
   onRegenerate: (messageId: string) => void
   onEdit: (messageId: string, newContent: string) => void

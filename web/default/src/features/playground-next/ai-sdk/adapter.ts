@@ -17,23 +17,23 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { nanoid } from 'nanoid'
-import type { UIMessage } from 'ai'
-import type { ExtendedMessage, NewApiStreamChunk, NewApiChatRequest } from './types'
+import type { ExtendedMessage, NewApiStreamChunk, NewApiChatRequest, MessagePart } from './types'
 import type { Attachment } from '../types'
 
 /**
  * Create a new user message with optional attachments
  */
 export function createUserMessage(content: string, attachments: Attachment[] = []): ExtendedMessage {
-  const parts: Array<{ type: 'text'; text: string } | { type: 'image'; image: string }> = [
-    { type: 'text', text: content },
-  ]
+  const parts: MessagePart[] = [{ type: 'text', text: content }]
 
-  // Add image parts
+  // Add file parts (image, video, etc.)
   for (const attachment of attachments) {
-    if (attachment.type === 'image') {
-      parts.push({ type: 'image', image: attachment.url })
-    }
+    parts.push({
+      type: 'file',
+      data: attachment.url,
+      mediaType: attachment.type === 'image' ? 'image/*' : 'video/*',
+      filename: attachment.name,
+    })
   }
 
   return {
@@ -63,28 +63,37 @@ export function createAssistantMessage(): ExtendedMessage {
 }
 
 /**
- * Convert UIMessages to new-api format
+ * Convert ExtendedMessages to new-api format
+ * 支持多模态：text + image_url
  */
-export function toNewApiMessages(messages: UIMessage[]): NewApiChatRequest['messages'] {
+export function toNewApiMessages(messages: ExtendedMessage[]): NewApiChatRequest['messages'] {
   return messages.map((msg) => {
-    // Handle multimodal content via parts (AI SDK 6.0)
+    // Handle multimodal content via parts
     if (msg.parts && msg.parts.length > 0) {
-      const contentParts = msg.parts
-        .filter((part): part is { type: 'text'; text: string } => part.type === 'text')
-        .map((part) => ({
-          type: 'text' as const,
-          text: part.text,
-        }))
+      const contentParts: Array<
+        | { type: 'text'; text: string }
+        | { type: 'image_url'; image_url: { url: string } }
+      > = []
 
-      // Note: AI SDK 6.0 parts don't include image types directly
-      // Images should be handled via separate logic in the UI layer
+      for (const part of msg.parts) {
+        if (part.type === 'text') {
+          contentParts.push({ type: 'text', text: part.text })
+        } else if (part.type === 'file') {
+          // 图片/视频统一转换为 OpenAI 多模态格式
+          contentParts.push({
+            type: 'image_url',
+            image_url: { url: part.data },
+          })
+        }
+      }
+
       return {
         role: msg.role as 'user' | 'assistant' | 'system',
         content: contentParts.length > 0 ? contentParts : '',
       }
     }
 
-    // Fallback: AI SDK 6.0 doesn't have content field, use parts only
+    // Fallback: no parts, use empty content
     return {
       role: msg.role as 'user' | 'assistant' | 'system',
       content: '',
