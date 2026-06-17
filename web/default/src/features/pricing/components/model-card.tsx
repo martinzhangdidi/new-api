@@ -18,7 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { memo } from 'react'
 import { Link } from '@tanstack/react-router'
-import { ChevronRight, Copy } from 'lucide-react'
+import { ChevronRight, Copy, Layers, Maximize2, CalendarClock } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { getLobeIcon } from '@/lib/lobe-icon'
 import { cn } from '@/lib/utils'
@@ -32,6 +32,12 @@ import {
 import { parseTags } from '../lib/filters'
 import { isTokenBasedModel } from '../lib/model-helpers'
 import { formatPrice, formatRequestPrice } from '../lib/price'
+import {
+  inferModelMetadata,
+  formatTokenCount,
+  formatYearMonth,
+} from '../lib/model-metadata'
+import { ModalityIcons } from './model-details-modalities'
 import type { PricingModel, TokenUnit } from '../types'
 import { ModelPerfBadge, type ModelPerfBadgeData } from './model-perf-badge'
 
@@ -81,6 +87,8 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
     Math.max(groups.length - 1, 0) +
     Math.max(endpoints.length - 2, 0) +
     Math.max(tags.length - 2, 0)
+
+  const metadata = inferModelMetadata(props.model)
 
   const handleCopy = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -227,6 +235,53 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
       <p className='text-muted-foreground mt-2 line-clamp-1 flex-1 text-[13px] leading-relaxed sm:mt-4 sm:line-clamp-2 sm:min-h-[2.5rem]'>
         {props.model.description || t('No description available.')}
       </p>
+
+      {/* Model metadata — compact grid with icons */}
+      <div className='mt-2 space-y-2 border-t pt-2 sm:mt-3 sm:pt-3'>
+        {/* Modalities flow: input → output */}
+        <div className='flex items-center gap-2 text-xs'>
+          <span className='text-muted-foreground/60 inline-flex items-center gap-1'>
+            <ModalityIcons modalities={metadata.input_modalities} className='size-3' />
+            <span className='text-[10px] uppercase tracking-wider'>Input</span>
+          </span>
+          <span className='text-muted-foreground/30'>→</span>
+          <span className='text-muted-foreground/60 inline-flex items-center gap-1'>
+            <ModalityIcons modalities={metadata.output_modalities} className='size-3' />
+            <span className='text-[10px] uppercase tracking-wider'>Output</span>
+          </span>
+        </div>
+
+        {/* Quick stats grid */}
+        <div className='grid grid-cols-3 gap-2'>
+          <div className='flex flex-col gap-0.5'>
+            <span className='text-muted-foreground inline-flex items-center gap-1 text-[10px] font-medium tracking-wider uppercase'>
+              <Layers className='size-3 shrink-0' />
+              <span className='truncate'>{t('Context')}</span>
+            </span>
+            <span className='text-foreground text-sm font-semibold tabular-nums'>
+              {formatTokenCount(metadata.context_length)}
+            </span>
+          </div>
+          <div className='flex flex-col gap-0.5'>
+            <span className='text-muted-foreground inline-flex items-center gap-1 text-[10px] font-medium tracking-wider uppercase'>
+              <Maximize2 className='size-3 shrink-0' />
+              <span className='truncate'>{t('Max Output')}</span>
+            </span>
+            <span className='text-foreground text-sm font-semibold tabular-nums'>
+              {formatTokenCount(metadata.max_output_tokens)}
+            </span>
+          </div>
+          <div className='flex flex-col gap-0.5'>
+            <span className='text-muted-foreground inline-flex items-center gap-1 text-[10px] font-medium tracking-wider uppercase'>
+              <CalendarClock className='size-3 shrink-0' />
+              <span className='truncate'>{t('Released')}</span>
+            </span>
+            <span className='text-foreground text-sm font-semibold tabular-nums'>
+              {formatYearMonth(metadata.release_date)}
+            </span>
+          </div>
+        </div>
+      </div>
 
       {/* Footer: left metadata and right performance summary share row alignment */}
       <div className='mt-2 grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-2 gap-y-1 sm:mt-4'>
