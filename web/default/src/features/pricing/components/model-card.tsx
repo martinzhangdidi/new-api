@@ -18,7 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { memo } from 'react'
 import { Link } from '@tanstack/react-router'
-import { ChevronRight, Copy, Layers, Maximize2, CalendarClock } from 'lucide-react'
+import { ChevronRight, Copy, Layers, Maximize2, CalendarClock, Play } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { getLobeIcon } from '@/lib/lobe-icon'
 import { cn } from '@/lib/utils'
@@ -212,6 +212,14 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
 
         <div className='flex shrink-0 items-center gap-1.5'>
           <Link
+            to='/playground-next'
+            search={{ model: props.model.model_name }}
+            className='bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs transition-colors sm:px-2.5 sm:py-1.5'
+          >
+            <Play className='size-3' />
+            {t('Interact')}
+          </Link>
+          <Link
             to='/pricing/$modelId'
             params={{ modelId: props.model.model_name }}
             search={(prev) => prev}
@@ -236,89 +244,110 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
         {props.model.description || t('No description available.')}
       </p>
 
-      {/* Model metadata — compact grid with icons */}
-      <div className='mt-2 space-y-2 border-t pt-2 sm:mt-3 sm:pt-3'>
-        {/* Modalities flow: input → output */}
-        <div className='flex items-center gap-2 text-xs'>
-          <span className='text-muted-foreground/60 inline-flex items-center gap-1'>
-            <ModalityIcons modalities={metadata.input_modalities} className='size-3' />
-            <span className='text-[10px] uppercase tracking-wider'>Input</span>
-          </span>
-          <span className='text-muted-foreground/30'>→</span>
-          <span className='text-muted-foreground/60 inline-flex items-center gap-1'>
-            <ModalityIcons modalities={metadata.output_modalities} className='size-3' />
-            <span className='text-[10px] uppercase tracking-wider'>Output</span>
-          </span>
+      {/* Info section — 2 full-width borders only */}
+      <div className='mt-2 flex flex-col gap-2 border-t pt-2 sm:mt-3 sm:pt-3'>
+        {/* Upper: metadata */}
+        <div className='space-y-2'>
+          {/* Modalities flow: input → output */}
+          <div className='flex items-center gap-2 text-xs'>
+            <span className='text-muted-foreground/60 inline-flex items-center gap-1'>
+              <ModalityIcons modalities={metadata.input_modalities} className='size-3' />
+              <span className='text-[10px] uppercase tracking-wider'>Input</span>
+            </span>
+            <span className='text-muted-foreground/30'>→</span>
+            <span className='text-muted-foreground/60 inline-flex items-center gap-1'>
+              <ModalityIcons modalities={metadata.output_modalities} className='size-3' />
+              <span className='text-[10px] uppercase tracking-wider'>Output</span>
+            </span>
+          </div>
+
+          {/* Quick stats grid */}
+          <div className='grid grid-cols-3 gap-2'>
+            <div className='flex flex-col gap-0.5'>
+              <span className='text-muted-foreground inline-flex items-center gap-1 text-[10px] font-medium tracking-wider uppercase'>
+                <Layers className='size-3 shrink-0' />
+                <span className='truncate'>{t('Context')}</span>
+              </span>
+              <span className='text-foreground text-sm font-semibold tabular-nums'>
+                {formatTokenCount(metadata.context_length)}
+              </span>
+            </div>
+            <div className='flex flex-col gap-0.5'>
+              <span className='text-muted-foreground inline-flex items-center gap-1 text-[10px] font-medium tracking-wider uppercase'>
+                <Maximize2 className='size-3 shrink-0' />
+                <span className='truncate'>{t('Max Output')}</span>
+              </span>
+              <span className='text-foreground text-sm font-semibold tabular-nums'>
+                {formatTokenCount(metadata.max_output_tokens)}
+              </span>
+            </div>
+            <div className='flex flex-col gap-0.5'>
+              <span className='text-muted-foreground inline-flex items-center gap-1 text-[10px] font-medium tracking-wider uppercase'>
+                <CalendarClock className='size-3 shrink-0' />
+                <span className='truncate'>{t('Released')}</span>
+              </span>
+              <span className='text-foreground text-sm font-semibold tabular-nums'>
+                {formatYearMonth(metadata.release_date)}
+              </span>
+            </div>
+          </div>
         </div>
 
-        {/* Quick stats grid */}
-        <div className='grid grid-cols-3 gap-2'>
-          <div className='flex flex-col gap-0.5'>
-            <span className='text-muted-foreground inline-flex items-center gap-1 text-[10px] font-medium tracking-wider uppercase'>
-              <Layers className='size-3 shrink-0' />
-              <span className='truncate'>{t('Context')}</span>
-            </span>
-            <span className='text-foreground text-sm font-semibold tabular-nums'>
-              {formatTokenCount(metadata.context_length)}
-            </span>
-          </div>
-          <div className='flex flex-col gap-0.5'>
-            <span className='text-muted-foreground inline-flex items-center gap-1 text-[10px] font-medium tracking-wider uppercase'>
-              <Maximize2 className='size-3 shrink-0' />
-              <span className='truncate'>{t('Max Output')}</span>
-            </span>
-            <span className='text-foreground text-sm font-semibold tabular-nums'>
-              {formatTokenCount(metadata.max_output_tokens)}
-            </span>
-          </div>
-          <div className='flex flex-col gap-0.5'>
-            <span className='text-muted-foreground inline-flex items-center gap-1 text-[10px] font-medium tracking-wider uppercase'>
-              <CalendarClock className='size-3 shrink-0' />
-              <span className='truncate'>{t('Released')}</span>
-            </span>
-            <span className='text-foreground text-sm font-semibold tabular-nums'>
-              {formatYearMonth(metadata.release_date)}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Footer: left metadata and right performance summary share row alignment */}
-      <div className='mt-2 grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-2 gap-y-1 sm:mt-4'>
-        <div className='flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1'>
-          {primaryGroup && (
+        {/* Lower: groups/tags/provider/perf — second border */}
+        <div className='flex flex-col gap-2 border-t pt-2'>
+          {/* Groups + type + tags */}
+          <div className='flex flex-wrap items-center gap-x-2 gap-y-1'>
+            {primaryGroup && (
+              <span className='text-muted-foreground text-xs font-medium'>
+                {primaryGroup} {t('Groups')}
+              </span>
+            )}
             <span className='text-muted-foreground text-xs font-medium'>
-              {primaryGroup} {t('Groups')}
+              {isTokenBased ? t('Token-based') : t('Per Request')}
             </span>
-          )}
-          <span className='text-muted-foreground text-xs font-medium'>
-            {isTokenBased ? t('Token-based') : t('Per Request')}
-          </span>
-          {isDynamicPricing && (
-            <StatusBadge
-              label={t('Dynamic Pricing')}
-              variant='warning'
-              copyable={false}
-              size='sm'
-            />
-          )}
-        </div>
-        <ModelPerfBadge perf={props.perf} className='row-span-2 self-start' />
+            {isDynamicPricing && (
+              <StatusBadge
+                label={t('Dynamic Pricing')}
+                variant='warning'
+                copyable={false}
+                size='sm'
+              />
+            )}
+            {bottomTags.map((item) => (
+              <span key={item} className='text-muted-foreground/70 text-xs'>
+                {item}
+              </span>
+            ))}
+            <span className='text-muted-foreground/50 text-xs'>
+              {tokenUnitLabel}
+            </span>
+            {hiddenCount > 0 && (
+              <span className='text-muted-foreground/40 text-xs'>
+                +{hiddenCount}
+              </span>
+            )}
+          </div>
 
-        <div className='flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-0.5 sm:gap-x-3 sm:gap-y-1'>
-          {bottomTags.map((item) => (
-            <span key={item} className='text-muted-foreground/70 text-xs'>
-              {item}
-            </span>
-          ))}
-          <span className='text-muted-foreground/50 text-xs'>
-            {tokenUnitLabel}
-          </span>
-          {hiddenCount > 0 && (
-            <span className='text-muted-foreground/40 text-xs'>
-              +{hiddenCount}
-            </span>
-          )}
+          {/* Provider + perf */}
+          <div className='flex items-center justify-between'>
+            <div className='flex items-center gap-1.5 text-[11px] text-muted-foreground/60'>
+              {props.model._channel_icons && props.model._channel_icons.length > 0 && (
+                <span className='inline-flex items-center gap-0.5'>
+                  {props.model._channel_icons.slice(0, 3).map((iconName, idx) => (
+                    <span key={idx} className='inline-flex size-4 items-center justify-center'>
+                      {getLobeIcon(`${iconName}.Color`, 14)}
+                    </span>
+                  ))}
+                </span>
+              )}
+              <span>
+                {props.model._channel_count && props.model._channel_count > 0
+                  ? t('Available on {{count}} provider', { count: props.model._channel_count })
+                  : t('No channel available')}
+              </span>
+            </div>
+            <ModelPerfBadge perf={props.perf} />
+          </div>
         </div>
       </div>
     </div>

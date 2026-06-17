@@ -69,6 +69,10 @@ export type PricingModel = {
   input_modalities?: Modality[]
   output_modalities?: Modality[]
   capabilities?: ModelCapability[]
+  /** Number of channels that support this model (derived client-side) */
+  _channel_count?: number
+  /** Channel type icon names for channels supporting this model */
+  _channel_icons?: string[]
 }
 
 /** Input/output modalities supported by a model. */

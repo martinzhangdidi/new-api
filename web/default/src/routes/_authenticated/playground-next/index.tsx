@@ -16,9 +16,15 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import z from 'zod'
 import { createFileRoute } from '@tanstack/react-router'
 import { PlaygroundNext } from '@/features/playground-next'
 
+const playgroundSearchSchema = z.object({
+  model: z.string().optional(),
+})
+
 export const Route = createFileRoute('/_authenticated/playground-next/')({
+  validateSearch: playgroundSearchSchema,
   component: PlaygroundNext,
 })

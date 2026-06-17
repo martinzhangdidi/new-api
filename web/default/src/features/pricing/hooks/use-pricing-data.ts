@@ -19,6 +19,9 @@ For commercial licensing, please contact support@quantumnous.com
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useStatus } from '@/hooks/use-status'
+import { getChannels } from '@/features/channels/api'
+import { parseModelsList } from '@/features/channels/lib/channel-utils'
+import { getChannelTypeIcon } from '@/features/channels/lib/channel-utils'
 import { getPricing } from '../api'
 
 export function usePricingData() {
@@ -27,6 +30,12 @@ export function usePricingData() {
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['pricing'],
     queryFn: getPricing,
+    staleTime: 5 * 60 * 1000,
+  })
+
+  const { data: channelsData } = useQuery({
+    queryKey: ['channels-all'],
+    queryFn: () => getChannels({ page_size: 10000 }),
     staleTime: 5 * 60 * 1000,
   })
 
@@ -56,6 +65,26 @@ export function usePricingData() {
     [status?.usd_exchange_rate, priceRate]
   )
 
+  const channelMap = useMemo(() => {
+    const items = channelsData?.data?.items ?? []
+    const map = new Map<string, { count: number; iconSet: Set<string> }>()
+
+    for (const channel of items) {
+      const modelList = parseModelsList(channel.models)
+      const icon = getChannelTypeIcon(channel.type)
+      for (const modelName of modelList) {
+        const entry = map.get(modelName)
+        if (entry) {
+          entry.count += 1
+          entry.iconSet.add(icon)
+        } else {
+          map.set(modelName, { count: 1, iconSet: new Set([icon]) })
+        }
+      }
+    }
+    return map
+  }, [channelsData])
+
   const models = useMemo(() => {
     if (!data?.data || !data?.vendors) return []
 
@@ -66,6 +95,7 @@ export function usePricingData() {
         ? vendorMap.get(model.vendor_id)
         : undefined
       const custom = customMetadata?.[model.model_name] || {}
+      const channelInfo = channelMap.get(model.model_name)
       return {
         ...model,
         key: model.model_name,
@@ -82,9 +112,13 @@ export function usePricingData() {
         output_modalities: custom.output_modalities ?? model.output_modalities,
         capabilities: custom.capabilities ?? model.capabilities,
         description: custom.description ?? model.description,
+        _channel_count: channelInfo?.count ?? 0,
+        _channel_icons: channelInfo
+          ? Array.from(channelInfo.iconSet)
+          : undefined,
       }
     })
-  }, [data, customMetadata])
+  }, [data, customMetadata, channelMap])
 
   return {
     models,

@@ -18,6 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useEffect, useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useSearch } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { getUserModels, getUserGroups } from './api'
 import { ParametersPanel } from './components/parameters-panel'
@@ -30,10 +31,12 @@ import { getModelCapabilities } from './lib/model-capabilities'
 
 export function PlaygroundNext() {
   const { t } = useTranslation()
+  const search = useSearch({ from: '/_authenticated/playground-next/' })
 
   // Selection state
   const [selectedModel, setSelectedModel] = useState('')
   const [selectedGroup, setSelectedGroup] = useState('')
+  const urlModel = (search as { model?: string }).model
 
   // Parameters hook
   const { params, enabled, updateParam, toggleEnabled, buildApiParams } = useParameters()
@@ -128,12 +131,18 @@ export function PlaygroundNext() {
     params: effectiveApiParams,
   })
 
-  // Set defaults
+  // Set defaults — prefer URL model param
   useEffect(() => {
-    if (modelsData?.length && !selectedModel) {
+    if (!modelsData?.length) return
+    if (urlModel) {
+      const exists = modelsData.some((m) => m.value === urlModel)
+      if (exists && selectedModel !== urlModel) {
+        setSelectedModel(urlModel)
+      }
+    } else if (!selectedModel) {
       setSelectedModel(modelsData[0].value)
     }
-  }, [modelsData, selectedModel])
+  }, [modelsData, selectedModel, urlModel])
 
   useEffect(() => {
     if (groupsData?.length && !selectedGroup) {
