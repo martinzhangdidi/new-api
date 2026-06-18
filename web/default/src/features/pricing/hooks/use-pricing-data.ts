@@ -23,6 +23,7 @@ import { getChannels } from '@/features/channels/api'
 import { parseModelsList } from '@/features/channels/lib/channel-utils'
 import { getChannelTypeIcon } from '@/features/channels/lib/channel-utils'
 import { getPricing } from '../api'
+import { OSS_METADATA_URL } from '@/lib/oss-config'
 
 export function usePricingData() {
   const { status } = useStatus()
@@ -43,7 +44,7 @@ export function usePricingData() {
     queryKey: ['customMetadata'],
     queryFn: async () => {
       try {
-        const res = await fetch('/models_metadata.json')
+        const res = await fetch(`${OSS_METADATA_URL}?t=${Date.now()}`)
         if (res.ok) {
           return await res.json()
         }

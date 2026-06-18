@@ -56,13 +56,16 @@ func GetPricing(c *gin.Context) {
 	}
 
 	usableGroup = service.GetUserUsableGroups(group)
-	pricing = filterPricingByUsableGroups(pricing, usableGroup)
-	// check groupRatio contains usableGroup
-	for group := range ratio_setting.GetGroupRatioCopy() {
-		if _, ok := usableGroup[group]; !ok {
-			delete(groupRatio, group)
+	if exists {
+		pricing = filterPricingByUsableGroups(pricing, usableGroup)
+		// check groupRatio contains usableGroup
+		for group := range ratio_setting.GetGroupRatioCopy() {
+			if _, ok := usableGroup[group]; !ok {
+				delete(groupRatio, group)
+			}
 		}
 	}
+	// 未登录用户不过滤，返回全部模型（pricing 页面公开）
 
 	c.JSON(200, gin.H{
 		"success":            true,

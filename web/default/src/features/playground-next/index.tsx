@@ -23,6 +23,7 @@ import { useTranslation } from 'react-i18next'
 import { getUserModels, getUserGroups } from './api'
 import { getPricing } from '@/features/pricing/api'
 import { getChannels } from '@/features/channels/api'
+import { OSS_METADATA_URL } from '@/lib/oss-config'
 import { getPerfMetricsSummary } from '@/features/performance-metrics/api'
 import { parseModelsList, getChannelTypeIcon } from '@/features/channels/lib/channel-utils'
 import { useStatus } from '@/hooks/use-status'
@@ -74,7 +75,7 @@ export function PlaygroundNext() {
     queryKey: ['customMetadata'],
     queryFn: async () => {
       try {
-        const res = await fetch('/models_metadata.json')
+        const res = await fetch(`${OSS_METADATA_URL}?t=${Date.now()}`)
         if (res.ok) {
           return await res.json()
         }

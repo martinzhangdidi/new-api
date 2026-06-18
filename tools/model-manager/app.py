@@ -6,10 +6,28 @@ import datetime
 import re
 import streamlit as st
 
+# 加载本地 .env 配置（如果有）
+try:
+    from dotenv import load_dotenv
+    env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env')
+    if os.path.exists(env_path):
+        load_dotenv(env_path)
+except ImportError:
+    pass
+
 # Locate models_metadata.json
-current_dir = os.path.dirname(os.path.abspath(__file__))
-project_root = os.path.dirname(os.path.dirname(current_dir))
-metadata_path = os.path.join(project_root, "web", "default", "public", "models_metadata.json")
+# Production: use METADATA_PATH env var (volume mounted)
+# Local dev: fallback to project root
+metadata_path = os.environ.get("METADATA_PATH")
+if not metadata_path:
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.dirname(os.path.dirname(current_dir))
+    metadata_path = os.path.join(project_root, "web", "default", "public", "models_metadata.json")
+
+try:
+    import oss2
+except ImportError:
+    oss2 = None
 
 # Modalities and Capabilities
 MODALITIES = ["text", "image", "audio", "video", "file"]
@@ -63,26 +81,93 @@ def load_metadata():
             st.error(f"Failed to read metadata JSON: {e}")
     return {}
 
-def save_metadata(data):
+# OSS 配置（可选，未配置则不上传）
+OSS_ACCESS_KEY = os.environ.get("OSS_ACCESS_KEY")
+OSS_SECRET_KEY = os.environ.get("OSS_SECRET_KEY")
+OSS_ENDPOINT = os.environ.get("OSS_ENDPOINT", "oss-cn-hangzhou.aliyuncs.com")
+OSS_BUCKET = os.environ.get("OSS_BUCKET", "tenkb-public")
+
+def upload_to_oss(data):
+    """上传元数据到 OSS，供前端 CDN 加速读取"""
+    if not oss2 or not all([OSS_ACCESS_KEY, OSS_SECRET_KEY, OSS_BUCKET]):
+        return  # OSS 未配置，跳过
+    try:
+        auth = oss2.Auth(OSS_ACCESS_KEY, OSS_SECRET_KEY)
+        bucket = oss2.Bucket(auth, OSS_ENDPOINT, OSS_BUCKET)
+        json_bytes = json.dumps(data, ensure_ascii=False, indent=2).encode("utf-8")
+        bucket.put_object("models_metadata.json", json_bytes)
+        bucket.put_object_acl("models_metadata.json", oss2.OBJECT_ACL_PUBLIC_READ)
+    except Exception as e:
+        st.warning(f"OSS upload failed: {e}")
+
+def save_metadata(data, push_to_oss=True):
     try:
         os.makedirs(os.path.dirname(metadata_path), exist_ok=True)
         with open(metadata_path, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
+        if push_to_oss:
+            upload_to_oss(data)
         return True
     except Exception as e:
         st.error(f"Failed to save metadata JSON: {e}")
         return False
 
+# 检查 OSS 是否可用
+oss_available = oss2 is not None and all([OSS_ACCESS_KEY, OSS_SECRET_KEY, OSS_BUCKET])
+
+# 记录 API 是否成功获取（用于 sidebar 提示）
+api_fetched = False
+
+def parse_models_from_channels(channels):
+    """从渠道列表解析模型名称"""
+    models = set()
+    for channel in channels:
+        # 支持多种模型字段格式
+        model_field = channel.get("models", "")
+        if isinstance(model_field, str):
+            # 逗号或换行分隔
+            for m in re.split(r'[,\n]', model_field):
+                m = m.strip()
+                if m:
+                    models.add(m)
+        elif isinstance(model_field, list):
+            for m in model_field:
+                if isinstance(m, str) and m.strip():
+                    models.add(m.strip())
+    return sorted(list(models))
+
 def fetch_active_models(api_url):
+    global api_fetched
+    api_fetched = False
     try:
+        # 先尝试 /api/pricing
         response = requests.get(f"{api_url}/api/pricing", timeout=5)
         if response.status_code == 200:
             data = response.json()
-            if data.get("success"):
+            if isinstance(data, dict) and data.get("success"):
                 models_data = data.get("data", [])
-                return [m["model_name"] for m in models_data]
+                if models_data:
+                    api_fetched = True
+                    return [m.get("model_name", m.get("id", str(m))) for m in models_data]
+        
+        # pricing 为空，fallback 到 /api/channels
+        response = requests.get(f"{api_url}/api/channel?p=0&page_size=10000", timeout=5)
+        if response.status_code == 200:
+            data = response.json()
+            if isinstance(data, dict) and data.get("success"):
+                channels = data.get("data", {}).get("items", [])
+                result = parse_models_from_channels(channels)
+                if result:
+                    api_fetched = True
+                    return result
+            elif isinstance(data, list):
+                result = parse_models_from_channels(data)
+                if result:
+                    api_fetched = True
+                    return result
+                
     except Exception as e:
-        st.sidebar.warning(f"Could not connect to Go API ({api_url}). Please check if the backend service is running.")
+        st.sidebar.warning(f"Could not connect to Go API ({api_url}): {e}")
     return []
 
 def get_openrouter_models():
@@ -234,11 +319,29 @@ st.markdown("This tool manages model metadata (context window, parameter count, 
 
 # Sidebar System Connection
 st.sidebar.header("⚙️ Connection Settings")
-api_url = st.sidebar.text_input("New API Backend URL", value="http://localhost:3001")
+
+backend_options = [
+    "http://localhost:3001",
+    "https://www.tenkb.com",
+    "Custom..."
+]
+
+selected_backend = st.sidebar.selectbox("New API Backend URL", options=backend_options)
+
+if selected_backend == "Custom...":
+    api_url = st.sidebar.text_input("Enter custom URL", value="http://localhost:3001")
+else:
+    api_url = selected_backend
 
 # Load models
 active_models = fetch_active_models(api_url)
 metadata = load_metadata()
+
+# Show API connection status
+if api_fetched:
+    st.sidebar.success(f"✅ Connected: {len(active_models)} models online")
+else:
+    st.sidebar.info(f"ℹ️ Could not verify production models (API may require auth). Showing all configured models as active.")
 
 # Model Categorization
 unmatched_models = [m for m in active_models if m not in metadata]
@@ -266,9 +369,18 @@ for model in sorted(unmatched_models):
         st.session_state.pop("form_desc_source", None)
 
 # 2. Configured Models (Custom metadata exists)
+# Note: active_models may be empty if API requires auth (e.g. production)
+# In that case, show all configured models as active (they likely exist)
+api_unreachable = len(active_models) == 0
+
 st.sidebar.subheader(f"🟢 Configured Models ({len(matched_models)})")
 for model in matched_models:
-    label = f"🟢 {model}" if model in active_models else f"⚪ {model} (Not Active in Gateway)"
+    if api_unreachable:
+        label = f"🟢 {model}"
+    elif model in active_models:
+        label = f"🟢 {model}"
+    else:
+        label = f"⚪ {model} (Not Active in Gateway)"
     if st.sidebar.button(label, key=f"sidebar_matched_{model}"):
         st.session_state.selected_model = model
         st.session_state.pop("form_context_length", None)
@@ -698,10 +810,10 @@ if selected:
         save_key = selected
 
     # Save / Delete Buttons
-    col_save, col_del, _ = st.columns([1, 1, 4])
+    col_local, col_prod, col_del = st.columns([1, 1, 1])
     
-    with col_save:
-        if st.button("💾 Save Configuration", type="primary", use_container_width=True):
+    with col_local:
+        if st.button("💾 Save Local", type="secondary", use_container_width=True):
             metadata[save_key] = {
                 "context_length": context_len,
                 "max_output_tokens": max_output,
@@ -713,9 +825,8 @@ if selected:
                 "capabilities": caps,
                 "description": desc
             }
-            if save_metadata(metadata):
-                st.success(f"🎉 Metadata for `{save_key}` saved successfully!")
-                st.balloons()
+            if save_metadata(metadata, push_to_oss=False):
+                st.success(f"🎉 Saved locally for `{save_key}`")
                 st.session_state.selected_model = save_key
                 st.session_state.pop("form_context_length", None)
                 st.session_state.pop("form_max_output", None)
@@ -731,6 +842,41 @@ if selected:
                 st.session_state.pop("form_cutoff_source", None)
                 st.session_state.pop("form_desc_source", None)
                 st.rerun()
+    
+    with col_prod:
+        if oss_available:
+            if st.button("🚀 Save & Push to Production", type="primary", use_container_width=True):
+                metadata[save_key] = {
+                    "context_length": context_len,
+                    "max_output_tokens": max_output,
+                    "knowledge_cutoff": cutoff,
+                    "release_date": release,
+                    "parameter_count": params_cnt,
+                    "input_modalities": inputs,
+                    "output_modalities": outputs,
+                    "capabilities": caps,
+                    "description": desc
+                }
+                if save_metadata(metadata, push_to_oss=True):
+                    st.success(f"🎉 Saved & pushed to Production for `{save_key}`!")
+                    st.balloons()
+                    st.session_state.selected_model = save_key
+                    st.session_state.pop("form_context_length", None)
+                    st.session_state.pop("form_max_output", None)
+                    st.session_state.pop("form_cutoff", None)
+                    st.session_state.pop("form_release", None)
+                    st.session_state.pop("form_params", None)
+                    st.session_state.pop("form_inputs", None)
+                    st.session_state.pop("form_outputs", None)
+                    st.session_state.pop("form_caps", None)
+                    st.session_state.pop("form_desc", None)
+                    st.session_state.pop("form_save_key", None)
+                    st.session_state.pop("form_release_source", None)
+                    st.session_state.pop("form_cutoff_source", None)
+                    st.session_state.pop("form_desc_source", None)
+                    st.rerun()
+        else:
+            st.button("🚀 Save & Push to Production", type="primary", use_container_width=True, disabled=True, help="OSS not configured. Set OSS_ACCESS_KEY env var to enable.")
                 
     with col_del:
         if (not is_or_only and selected in metadata) or (is_or_only and save_key in metadata):
