@@ -19,7 +19,8 @@ For commercial licensing, please contact support@quantumnous.com
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useStatus } from '@/hooks/use-status'
-import { getChannels } from '@/features/channels/api'
+import { useAuthStore } from '@/stores/auth-store'
+import { getChannels, getPublicChannelStats } from '@/features/channels/api'
 import { parseModelsList } from '@/features/channels/lib/channel-utils'
 import { getChannelTypeIcon } from '@/features/channels/lib/channel-utils'
 import { getPricing } from '../api'
@@ -27,6 +28,7 @@ import { OSS_METADATA_URL } from '@/lib/oss-config'
 
 export function usePricingData() {
   const { status } = useStatus()
+  const user = useAuthStore((s) => s.auth.user)
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['pricing'],
@@ -37,6 +39,14 @@ export function usePricingData() {
   const { data: channelsData } = useQuery({
     queryKey: ['channels-all'],
     queryFn: () => getChannels({ page_size: 10000 }),
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000,
+  })
+
+  const { data: publicChannelsData } = useQuery({
+    queryKey: ['channels-public'],
+    queryFn: getPublicChannelStats,
+    enabled: !user,
     staleTime: 5 * 60 * 1000,
   })
 
@@ -67,7 +77,8 @@ export function usePricingData() {
   )
 
   const channelMap = useMemo(() => {
-    const items = channelsData?.data?.items ?? []
+    const items =
+      channelsData?.data?.items ?? publicChannelsData?.data?.items ?? []
     const map = new Map<string, { count: number; iconSet: Set<string> }>()
 
     for (const channel of items) {
@@ -84,7 +95,7 @@ export function usePricingData() {
       }
     }
     return map
-  }, [channelsData])
+  }, [channelsData, publicChannelsData])
 
   const models = useMemo(() => {
     if (!data?.data || !data?.vendors) return []

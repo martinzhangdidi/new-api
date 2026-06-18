@@ -616,3 +616,24 @@ export async function getPrefillGroups(
   const res = await api.get('/api/prefill_group', { params: { type } })
   return res.data
 }
+
+// ============================================================================
+// Public Channel Stats (for pricing page, no auth required)
+// ============================================================================
+
+export type PublicChannelStatsItem = {
+  id: number
+  type: number
+  models: string
+  status: number
+  name: string
+}
+
+export async function getPublicChannelStats(): Promise<{
+  success: boolean
+  message?: string
+  data?: { items: PublicChannelStatsItem[] }
+}> {
+  const res = await api.get('/api/channel/stats')
+  return res.data
+}

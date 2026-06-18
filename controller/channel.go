@@ -185,6 +185,31 @@ func GetAllChannels(c *gin.Context) {
 	return
 }
 
+// GetPublicChannelStats 返回公开渠道统计信息（供 pricing 页面展示）
+func GetPublicChannelStats(c *gin.Context) {
+	var channels []*model.Channel
+	err := model.DB.Model(&model.Channel{}).
+		Select("id, type, models, status, name").
+		Where("status = ?", common.ChannelStatusEnabled).
+		Find(&channels).Error
+	if err != nil {
+		common.ApiErrorMsg(c, "获取渠道统计失败")
+		return
+	}
+
+	items := make([]gin.H, 0, len(channels))
+	for _, ch := range channels {
+		items = append(items, gin.H{
+			"id":     ch.Id,
+			"type":   ch.Type,
+			"models": ch.Models,
+			"status": ch.Status,
+			"name":   ch.Name,
+		})
+	}
+	common.ApiSuccess(c, gin.H{"items": items})
+}
+
 func buildFetchModelsHeaders(channel *model.Channel, key string) (http.Header, error) {
 	var headers http.Header
 	switch channel.Type {
